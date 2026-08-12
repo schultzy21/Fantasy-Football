@@ -1,0 +1,6 @@
+# Your Anthropic API key -- never commit this
+anthropic_key.txt
+
+# Generated locally by server.py -- not part of the app itself
+players_cache.json
+data.json
