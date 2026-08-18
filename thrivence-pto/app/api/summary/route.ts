@@ -4,6 +4,8 @@ import { EMPLOYEES } from "@/lib/employees";
 import { countBusinessDays, toISODate } from "@/lib/dates";
 import type { EmployeeSummary, PtoEntry } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 // The password check happens here, server-side, so it's never shipped to
 // the browser in the page's JavaScript. Change PTO_SUMMARY_PASSWORD in the
 // environment variables (Vercel -> Project -> Settings -> Environment

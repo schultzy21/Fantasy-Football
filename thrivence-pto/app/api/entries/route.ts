@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getSupabase, isSupabaseConfigured, getMissingSupabaseEnvVars } from "@/lib/supabase";
 import { EMPLOYEE_NAMES } from "@/lib/employees";
 import type { NewPtoEntry } from "@/lib/types";
 
+// This route reads live data and env state on every request -- never
+// statically cache it.
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ entries: [], configured: false });
+    return NextResponse.json({
+      entries: [],
+      configured: false,
+      missingVars: getMissingSupabaseEnvVars(),
+    });
   }
   const supabase = getSupabase();
   const { data, error } = await supabase
