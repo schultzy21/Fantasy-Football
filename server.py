@@ -88,7 +88,7 @@ def fetch_and_trim_players():
         )
         if not name:
             continue
-        trimmed[player_id] = [name, position, p.get("team")]
+        trimmed[player_id] = [name, position, p.get("team"), p.get("injury_status")]
 
     cache = {"updated_at": time.time(), "players": trimmed}
     write_json(PLAYERS_CACHE_FILE, cache)
@@ -158,6 +158,41 @@ WRITEUP_SCHEMA = {
     },
     "required": ["recap_narrative", "power_ranking_blurbs", "predictions_outlook"],
     "additionalProperties": False,
+}
+
+NEWSLETTER_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "headline": {"type": "string", "description": "A punchy newspaper-style headline for this week."},
+        "dateline": {"type": "string", "description": "Short newspaper dateline, e.g. 'WEEK 7 -- LEAGUE DESK'."},
+        "byline": {"type": "string", "description": "A wry fictional byline, e.g. 'By the League Wire Staff'."},
+        "lede_paragraph": {
+            "type": "string",
+            "description": "The opening paragraph of the article -- strong newspaper lede that hooks the reader with the week's biggest story.",
+        },
+        "body_paragraphs": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "3-5 more paragraphs covering highlights, lowlights, and a few good-natured ribs at specific teams, grounded in the real numbers given.",
+        },
+        "closing_line": {"type": "string", "description": "A short one-line kicker or sign-off."},
+    },
+    "required": ["headline", "dateline", "byline", "lede_paragraph", "body_paragraphs", "closing_line"],
+    "additionalProperties": False,
+}
+
+SYSTEM_PROMPTS = {
+    "weekly": (
+        "You write short, lively fantasy football league newsletter copy. "
+        "Be specific, use the real numbers given to you, and keep a fun but "
+        "grounded tone -- no generic filler."
+    ),
+    "newsletter": (
+        "You are a witty sports-page beat writer producing a weekly fantasy football "
+        "newsletter in classic newspaper style. Use only the real names and numbers "
+        "given to you -- never invent stats, injuries, or events. Be funny and pointed "
+        "but not mean-spirited; a few ribs at specific teams are welcome."
+    ),
 }
 
 
@@ -242,17 +277,15 @@ class Handler(BaseHTTPRequestHandler):
             if not api_key:
                 self._send_json({"available": False})
                 return
+            kind = payload.get("kind", "weekly")
+            schema = NEWSLETTER_SCHEMA if kind == "newsletter" else WRITEUP_SCHEMA
+            default_system = SYSTEM_PROMPTS.get(kind, SYSTEM_PROMPTS["weekly"])
             try:
                 result = call_anthropic(
                     api_key,
-                    payload.get(
-                        "system",
-                        "You write short, lively fantasy football league newsletter copy. "
-                        "Be specific, use the real numbers given to you, and keep a fun but "
-                        "grounded tone -- no generic filler.",
-                    ),
+                    payload.get("system", default_system),
                     payload["brief"],
-                    WRITEUP_SCHEMA,
+                    schema,
                 )
                 self._send_json({"available": True, "result": result})
             except urllib.error.HTTPError as e:

@@ -15,6 +15,11 @@
     --muted: #6b6455;
     --good: #2e6b3e;
     --bad: #8a2e2e;
+    /* chart chrome (dataviz reference palette, light surface) */
+    --chart-surface: #fcfcfb;
+    --chart-grid: #e1e0d9;
+    --chart-muted: #898781;
+    --chart-line-default: #c3c2b7;
   }
   * { box-sizing: border-box; }
   body {
@@ -58,6 +63,25 @@
     font-size: 14px;
     text-align: center;
   }
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    max-width: 1000px;
+    margin: 20px auto 0;
+    padding: 0 16px;
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  .tab-btn {
+    padding: 8px 20px;
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .tab-btn.active { background: var(--ink); color: var(--paper); }
   main {
     max-width: 1000px;
     margin: 0 auto;
@@ -93,9 +117,9 @@
   .team-cell img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; background: var(--paper-alt); }
   .power-row { padding: 12px 0; border-bottom: 1px solid var(--rule); }
   .power-row:last-child { border-bottom: none; }
-  .power-row .headline { display: flex; justify-content: space-between; align-items: baseline; font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+  .power-row .headline { display: flex; justify-content: space-between; align-items: baseline; font-family: -apple-system, Segoe UI, Roboto, sans-serif; gap: 10px; flex-wrap: wrap; }
   .power-row .headline .name { font-weight: bold; font-size: 16px; }
-  .power-row .headline .stats { color: var(--muted); font-size: 13px; }
+  .power-row .headline .stats { color: var(--muted); font-size: 13px; text-align: right; }
   .power-row .blurb { margin: 4px 0 0; font-size: 14px; }
   .matchup { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--rule); font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 14px; }
   .matchup:last-child { border-bottom: none; }
@@ -104,6 +128,7 @@
   .matchup .score { width: 60px; text-align: right; }
   .callout { background: var(--paper-alt); border-left: 4px solid var(--accent); padding: 10px 14px; margin: 10px 0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 14px; border-radius: 0 4px 4px 0; }
   .callout.good { border-left-color: var(--good); }
+  .callout.small { font-size: 12px; color: var(--muted); background: transparent; border-left-color: var(--rule); }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
   .pill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
@@ -122,12 +147,44 @@
   form.manual-form input[name="note"] { flex: 1; min-width: 140px; }
   form.manual-form button, .btn { padding: 7px 14px; border-radius: 4px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); cursor: pointer; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 13px; }
   form.manual-form button:hover, .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
   .manual-entry { display: flex; justify-content: space-between; align-items: center; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--rule); }
   .manual-entry button { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; }
-  textarea#brief-text { width: 100%; min-height: 220px; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; padding: 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper-alt); }
-  #generate-status { font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  textarea.brief-text { width: 100%; min-height: 220px; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; padding: 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper-alt); }
+  .generate-status { font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 13px; color: var(--muted); margin-top: 8px; }
   .error-box { background: #fdeeee; border: 1px solid #e0b0b0; border-radius: 4px; padding: 14px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 13px; }
   footer { text-align: center; padding: 20px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 12px; color: var(--muted); }
+
+  /* ---- chart ---- */
+  .chart-scroll { overflow-x: auto; background: var(--chart-surface); border: 1px solid var(--rule); border-radius: 6px; }
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+  .legend-chip {
+    font-size: 11px; padding: 4px 10px; border-radius: 12px;
+    background: var(--paper-alt); border: 1px solid var(--rule);
+    color: var(--muted); cursor: pointer; transition: background 0.1s, color 0.1s;
+  }
+  .legend-chip.active { color: #fff; }
+  .table-toggle-link { font-size: 12px; cursor: pointer; color: var(--accent-2); text-decoration: underline; background: none; border: none; padding: 0; margin-top: 10px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+
+  /* ---- newsletter ---- */
+  #view-newsletter { display: none; }
+  .newsletter-masthead { text-align: center; padding: 10px 0 16px; border-bottom: 3px double var(--ink); margin-bottom: 4px; }
+  .newsletter-masthead .kicker { font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .newsletter-masthead h2 { font-size: clamp(24px, 5vw, 38px); margin: 6px 0 0; text-transform: uppercase; letter-spacing: 0.5px; border: none; padding: 0; }
+  .byline-row {
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 12px; color: var(--muted);
+    border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+    padding: 6px 0; margin: 10px 0 18px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .newsletter-body { column-count: 2; column-gap: 28px; column-rule: 1px solid var(--rule); font-size: 15.5px; }
+  @media (max-width: 700px) { .newsletter-body { column-count: 1; } }
+  .newsletter-body p { margin: 0 0 14px; text-align: left; }
+  .newsletter-body p:first-of-type::first-letter {
+    float: left; font-family: Georgia, serif; font-weight: bold;
+    font-size: 3.4em; line-height: 0.82; padding: 4px 8px 0 0;
+  }
+  .newsletter-kicker { text-align: center; font-style: italic; color: var(--muted); margin-top: 18px; font-size: 13px; border-top: 1px solid var(--rule); padding-top: 10px; }
 </style>
 </head>
 <body>
@@ -140,7 +197,14 @@
 
 <div id="status-banner" style="display:none;"></div>
 
+<nav class="tabs">
+  <button type="button" class="tab-btn active" data-tab="dashboard">Dashboard</button>
+  <button type="button" class="tab-btn" data-tab="newsletter">Newsletter</button>
+</nav>
+
 <main id="app">
+
+<div id="view-dashboard">
 
   <section class="card" id="section-setup">
     <h2>League Setup</h2>
@@ -155,6 +219,11 @@
   <section class="card" id="section-power">
     <h2>Power Rankings</h2>
     <div id="power-content" class="coming-soon">Loading…</div>
+  </section>
+
+  <section class="card" id="section-trend">
+    <h2>Power Rankings Over Time</h2>
+    <div id="trend-content" class="coming-soon">Loading…</div>
   </section>
 
   <section class="card" id="section-positions">
@@ -191,18 +260,53 @@
   <section class="card" id="section-writeups">
     <h2>Written Content</h2>
     <p style="font-family:-apple-system, Segoe UI, Roboto, sans-serif; font-size:13px; color:var(--muted);">
-      The numbers above are computed directly from Sleeper. This box asks Claude to turn them into the recap, power-ranking
-      blurbs, and predictions write-ups shown above.
+      The numbers above are computed directly from Sleeper (and, before the season starts, from your draft results).
+      This box asks Claude to turn them into the recap, power-ranking blurbs, and predictions write-ups shown above.
     </p>
     <button class="btn" id="generate-btn" style="display:none;">Generate write-ups with Claude</button>
-    <div id="generate-status"></div>
+    <div class="generate-status" id="generate-status"></div>
     <details style="margin-top:12px;">
       <summary style="cursor:pointer; font-family:-apple-system, Segoe UI, Roboto, sans-serif; font-size:13px;">
         Show the plain-text brief (copy this into Claude yourself if you don't have a key set up)
       </summary>
-      <textarea id="brief-text" readonly></textarea>
+      <textarea class="brief-text" id="brief-text" readonly></textarea>
     </details>
   </section>
+
+</div>
+
+<div id="view-newsletter">
+
+  <section class="card">
+    <div class="newsletter-masthead">
+      <div class="kicker" id="nl-kicker">The League's Weekly Newspaper</div>
+      <h2 id="nl-headline">The Weekly Wire</h2>
+    </div>
+    <div class="byline-row">
+      <span id="nl-byline">By the League Wire Staff</span>
+      <span id="nl-dateline"></span>
+    </div>
+    <div id="nl-body" class="newsletter-body">
+      <p class="coming-soon">Loading…</p>
+    </div>
+    <div class="newsletter-kicker" id="nl-kicker-line" style="display:none;"></div>
+
+    <div style="margin-top:22px; border-top:1px solid var(--rule); padding-top:16px;">
+      <p style="font-family:-apple-system, Segoe UI, Roboto, sans-serif; font-size:13px; color:var(--muted);">
+        Built from this week's real scores, rosters, and injury statuses — Claude writes it up in newspaper style.
+      </p>
+      <button class="btn" id="nl-generate-btn" style="display:none;">Write this week's newsletter</button>
+      <div class="generate-status" id="nl-generate-status"></div>
+      <details style="margin-top:12px;">
+        <summary style="cursor:pointer; font-family:-apple-system, Segoe UI, Roboto, sans-serif; font-size:13px;">
+          Show the plain-text brief (copy this into Claude yourself if you don't have a key set up)
+        </summary>
+        <textarea class="brief-text" id="nl-brief-text" readonly></textarea>
+      </details>
+    </div>
+  </section>
+
+</div>
 
 </main>
 
@@ -215,9 +319,14 @@
   const LEAGUE_ID = '1389331489925132288';
   const SLEEPER = 'https://api.sleeper.app/v1';
   const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
+  const NOTABLE_INJURY_STATUSES = ['Questionable', 'Doubtful', 'Out', 'IR', 'PUP', 'Sus', 'COV', 'DNR', 'NA'];
+  // Fixed-order categorical hues, validated for CVD-safety (dataviz skill reference palette).
+  // Only ever applied one-at-a-time (active highlight); everything else stays neutral gray,
+  // so reuse past 8 series is fine -- no two hues are ever compared simultaneously.
+  const CHART_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
 
   let lastComputedBrief = null;
-  let lastGeneratedContext = null; // {powerRanked} so we can splice in blurbs by team name
+  let lastNewsletterBrief = null;
 
   // ---------- small helpers ----------
 
@@ -258,6 +367,19 @@
 
   function fetchPlayers() {
     return fetchJSON('/api/players').then((cache) => cache.players || {});
+  }
+
+  // ---------- tabs ----------
+
+  function setupTabs() {
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        buttons.forEach((b) => b.classList.toggle('active', b === btn));
+        document.getElementById('view-dashboard').style.display = btn.dataset.tab === 'dashboard' ? '' : 'none';
+        document.getElementById('view-newsletter').style.display = btn.dataset.tab === 'newsletter' ? '' : 'none';
+      });
+    });
   }
 
   // ---------- league chain / standings ----------
@@ -553,29 +675,35 @@
     }[status] || status;
   }
 
-  async function renderDraft(league, playersById) {
+  async function fetchDraftInfo(league) {
     let drafts;
     try { drafts = await sleeper.drafts(league.league_id); } catch (e) { drafts = []; }
-    if (!drafts || drafts.length === 0) {
+    if (!drafts || drafts.length === 0) return { draft: null, picks: null };
+    const draft = drafts[0];
+    if (draft.status !== 'complete') return { draft, picks: null };
+    let picks;
+    try { picks = await sleeper.draftPicks(draft.draft_id); } catch (e) { picks = []; }
+    return { draft, picks };
+  }
+
+  function renderDraft(draft, picks, playersById, standings) {
+    if (!draft) {
       setContent('draft-content', '<div class="coming-soon">No draft found for this league yet.</div>');
       return;
     }
-    const draft = drafts[0];
     if (draft.status !== 'complete') {
       const when = draft.start_time ? new Date(draft.start_time).toLocaleString() : 'not yet scheduled';
       setContent('draft-content', `<div class="coming-soon">Draft hasn't happened yet (status: ${escapeHtml(statusLabel(draft.status) || draft.status)}). Scheduled: ${escapeHtml(when)}.</div>`);
       return;
     }
-    let picks;
-    try { picks = await sleeper.draftPicks(draft.draft_id); } catch (e) { picks = []; }
-    if (picks.length === 0) {
+    if (!picks || picks.length === 0) {
       setContent('draft-content', '<div class="coming-soon">Draft is complete but pick data is unavailable.</div>');
       return;
     }
     const rows = picks.map((p) => {
       const info = playersById && playersById[p.player_id];
       const name = info ? `${info[0]} (${info[1]}${info[2] ? ' - ' + info[2] : ''})` : (p.metadata ? `${p.metadata.first_name || ''} ${p.metadata.last_name || ''}`.trim() : 'Unknown');
-      const teamName = (p.metadata && p.metadata.team_name) || p.picked_by || '—';
+      const teamName = teamNameByRosterId(standings, p.roster_id);
       return `<tr><td>${p.round}.${String(p.pick_no).padStart(2, '0')}</td><td>${escapeHtml(name)}</td><td>${escapeHtml(teamName)}</td></tr>`;
     }).join('');
     setContent('draft-content', `
@@ -617,7 +745,7 @@
     setContent('recap-content', html);
   }
 
-  // ---------- power rankings ----------
+  // ---------- power rankings (in-season) ----------
 
   function computePowerRankings(standings) {
     const pts = standings.map((s) => s.fpts);
@@ -642,7 +770,82 @@
     setContent('power-content', html);
   }
 
+  // ---------- power rankings (pre-season, from draft capital) ----------
+
+  function pickValue(pickNo) { return 1000 / Math.max(1, pickNo); }
+
+  function computeDraftCapitalPower(picks, playersById, rosterPositions, standings) {
+    if (!picks || picks.length === 0 || !playersById) return null;
+    const requiredExact = (rosterPositions || []).filter((p) => p !== 'BN' && !p.includes('FLEX'));
+    const flexCount = (rosterPositions || []).filter((p) => p.includes('FLEX')).length;
+
+    const byRoster = {};
+    for (const p of picks) {
+      if (p.roster_id == null) continue;
+      const info = playersById[p.player_id];
+      const pos = info ? info[1] : (p.metadata && p.metadata.position);
+      const name = info ? info[0] : (p.metadata ? `${p.metadata.first_name || ''} ${p.metadata.last_name || ''}`.trim() : 'Unknown');
+      if (!pos) continue;
+      (byRoster[p.roster_id] ||= []).push({ name, pos, pickNo: p.pick_no, value: pickValue(p.pick_no) });
+    }
+
+    const results = [];
+    for (const [rosterId, playersArr] of Object.entries(byRoster)) {
+      let remaining = [...playersArr].sort((a, b) => b.value - a.value);
+      const starters = [];
+      for (const slot of requiredExact) {
+        const idx = remaining.findIndex((pl) => pl.pos === slot);
+        if (idx >= 0) { starters.push({ ...remaining[idx], slot }); remaining.splice(idx, 1); }
+      }
+      for (let i = 0; i < flexCount; i++) {
+        const idx = remaining.findIndex((pl) => ['RB', 'WR', 'TE'].includes(pl.pos));
+        if (idx >= 0) { starters.push({ ...remaining[idx], slot: 'FLEX' }); remaining.splice(idx, 1); }
+      }
+      const powerScore = starters.reduce((sum, s) => sum + s.value, 0);
+      results.push({
+        rosterId: Number(rosterId),
+        teamName: teamNameByRosterId(standings, Number(rosterId)),
+        powerScore,
+        starters,
+        picksCount: playersArr.length,
+      });
+    }
+    results.sort((a, b) => b.powerScore - a.powerScore);
+    return results.length ? results : null;
+  }
+
+  function renderPreseasonPower(ranked) {
+    const html = ranked.map((t, i) => `
+      <div class="power-row" data-team="${escapeHtml(t.teamName)}">
+        <div class="headline">
+          <span class="name">#${i + 1} ${escapeHtml(t.teamName)}</span>
+          <span class="stats">Draft grade: ${t.powerScore.toFixed(0)}</span>
+        </div>
+        <p class="blurb" data-blurb-for="${escapeHtml(t.teamName)}">
+          Projected starters: ${t.starters.map((s) => `${escapeHtml(s.name)} (${s.pos})`).join(', ') || '—'}.
+        </p>
+      </div>`).join('')
+      + `<div class="callout small">Estimated from your draft results only — real stat-based projections need a paid data
+          source Sleeper's free API doesn't provide. This switches to actual performance once games are played.</div>`;
+    setContent('power-content', html);
+  }
+
   // ---------- position groups ----------
+
+  function renderPositionGroups(best, unitLabel = 'starter pts') {
+    const entries = Object.entries(best);
+    if (entries.length === 0) {
+      setContent('positions-content', '<div class="coming-soon">Not enough data yet to compare position groups.</div>');
+      return;
+    }
+    const html = `<div class="pill-grid">${entries.map(([pos, info]) => `
+      <div class="pill">
+        <div class="label">${pos}</div>
+        <div class="value">${escapeHtml(info.teamName)}</div>
+        <div style="color:var(--muted); font-size:12px;">${fmt(info.points)} ${escapeHtml(unitLabel)}</div>
+      </div>`).join('')}</div>`;
+    setContent('positions-content', html);
+  }
 
   function computePositionStrength(playedWeeks, standings, playersById) {
     const totals = {};
@@ -661,36 +864,38 @@
         });
       }
     }
+    return bestPerPosition(totals, standings);
+  }
+
+  function computePreseasonPositionStrength(picks, playersById, standings) {
+    const totals = {};
+    if (!picks || !playersById) return {};
+    for (const p of picks) {
+      const info = playersById[p.player_id];
+      if (!info) continue;
+      const pos = info[1];
+      if (!POSITIONS.includes(pos)) continue;
+      (totals[p.roster_id] ||= {})[pos] = (totals[p.roster_id][pos] || 0) + pickValue(p.pick_no);
+    }
+    return bestPerPosition(totals, standings);
+  }
+
+  function bestPerPosition(totals, standings) {
     const best = {};
     for (const pos of POSITIONS) {
-      let bestRoster = null, bestPts = -Infinity;
+      let bestRoster = null, bestVal = -Infinity;
       for (const [rosterId, posMap] of Object.entries(totals)) {
-        const pts = posMap[pos] || 0;
-        if (pts > bestPts) { bestPts = pts; bestRoster = Number(rosterId); }
+        const v = posMap[pos] || 0;
+        if (v > bestVal) { bestVal = v; bestRoster = Number(rosterId); }
       }
-      if (bestRoster != null && bestPts > 0) {
-        best[pos] = { teamName: teamNameByRosterId(standings, bestRoster), points: bestPts };
+      if (bestRoster != null && bestVal > 0) {
+        best[pos] = { teamName: teamNameByRosterId(standings, bestRoster), points: bestVal };
       }
     }
     return best;
   }
 
-  function renderPositionGroups(best) {
-    const entries = Object.entries(best);
-    if (entries.length === 0) {
-      setContent('positions-content', '<div class="coming-soon">Not enough data yet to compare position groups.</div>');
-      return;
-    }
-    const html = `<div class="pill-grid">${entries.map(([pos, info]) => `
-      <div class="pill">
-        <div class="label">${pos}</div>
-        <div class="value">${escapeHtml(info.teamName)}</div>
-        <div style="color:var(--muted); font-size:12px;">${fmt(info.points)} starter pts</div>
-      </div>`).join('')}</div>`;
-    setContent('positions-content', html);
-  }
-
-  // ---------- predictions ----------
+  // ---------- predictions (in-season) ----------
 
   function computePredictions(standings, league) {
     const playoffSpots = (league.settings && league.settings.playoff_teams) || 6;
@@ -728,7 +933,219 @@
     setContent('predictions-content', html);
   }
 
-  // ---------- brief for Claude / manual copy ----------
+  // ---------- predictions (pre-season, from draft capital) ----------
+
+  function computePreseasonPredictions(ranked, league) {
+    const playoffSpots = (league.settings && league.settings.playoff_teams) || 6;
+    const contenders = ranked.slice(0, playoffSpots);
+    const bubble = ranked.slice(Math.max(0, playoffSpots - 2), playoffSpots + 2);
+    const favorite = ranked[0];
+    const darkhorses = ranked.slice(2, 4);
+    const cellar = ranked[ranked.length - 1];
+    return { playoffSpots, contenders, bubble, favorite, darkhorses, cellar };
+  }
+
+  function computeWeek1Projection(week1Matchups, ranked) {
+    if (!week1Matchups || week1Matchups.length === 0) return null;
+    const scoreByRoster = Object.fromEntries(ranked.map((t) => [t.rosterId, t.powerScore]));
+    const groups = pairByMatchupId(week1Matchups).filter((g) => g.length === 2 && scoreByRoster[g[0].roster_id] != null && scoreByRoster[g[1].roster_id] != null);
+    if (groups.length === 0) return null;
+    return groups.map(([a, b]) => {
+      const scoreA = scoreByRoster[a.roster_id] ?? 0, scoreB = scoreByRoster[b.roster_id] ?? 0;
+      const prob = 1 / (1 + Math.exp(-(scoreA - scoreB) / 150));
+      const favoredIsA = prob >= 0.5;
+      return {
+        teamAName: teamNameByRosterId(ranked, a.roster_id),
+        teamBName: teamNameByRosterId(ranked, b.roster_id),
+        favoredName: favoredIsA ? teamNameByRosterId(ranked, a.roster_id) : teamNameByRosterId(ranked, b.roster_id),
+        favoredPct: Math.round((favoredIsA ? prob : 1 - prob) * 100),
+      };
+    });
+  }
+
+  function renderPreseasonPredictions(p, week1Proj) {
+    const week1Html = week1Proj && week1Proj.length
+      ? `<h3 style="font-family:-apple-system, Segoe UI, Roboto, sans-serif; font-size:14px; margin-top:16px;">Week 1 projected matchups</h3>
+         <table><tbody>${week1Proj.map((m) => `
+           <tr><td>${escapeHtml(m.teamAName)} vs ${escapeHtml(m.teamBName)}</td><td>${escapeHtml(m.favoredName)} favored (${m.favoredPct}%)</td></tr>`).join('')}</tbody></table>`
+      : '';
+    const html = `
+      <div class="grid-2">
+        <div>
+          <h3 style="font-family:-apple-system, Segoe UI, Roboto, sans-serif; font-size:14px;">Early projected contenders</h3>
+          <table><tbody>${p.contenders.map((t) => `<tr><td>${escapeHtml(t.teamName)}</td></tr>`).join('')}</tbody></table>
+        </div>
+        <div>
+          <h3 style="font-family:-apple-system, Segoe UI, Roboto, sans-serif; font-size:14px;">On the bubble</h3>
+          <table><tbody>${p.bubble.map((t) => `<tr><td>${escapeHtml(t.teamName)}</td></tr>`).join('')}</tbody></table>
+        </div>
+      </div>
+      ${week1Html}
+      <div class="callout good"><strong>Early favorite:</strong> ${escapeHtml(p.favorite.teamName)}</div>
+      <div class="callout"><strong>Darkhorses:</strong> ${p.darkhorses.map((t) => escapeHtml(t.teamName)).join(', ')}</div>
+      <div class="callout"><strong>Tracking toward last place:</strong> ${escapeHtml(p.cellar.teamName)}</div>
+      <p id="predictions-narrative" style="font-family:-apple-system, Segoe UI, Roboto, sans-serif; font-size:14px; margin-top:12px;"></p>
+      <div class="callout small">Based on draft results, not real stats-based projections — treat this as a fun early guess.</div>
+    `;
+    setContent('predictions-content', html);
+  }
+
+  // ---------- power rankings over time (chart) ----------
+
+  function computePowerRankingTimeline(playedWeeks, standings, preseasonRanked) {
+    const timeline = [];
+    if (preseasonRanked) {
+      const ranks = {};
+      preseasonRanked.forEach((t, i) => { ranks[t.rosterId] = i + 1; });
+      timeline.push({ week: 'Preseason', ranks });
+    }
+    if (playedWeeks.length === 0) return timeline;
+
+    const cumulative = {};
+    for (const s of standings) cumulative[s.rosterId] = { wins: 0, losses: 0, ties: 0, fpts: 0 };
+
+    for (const { week, matchups } of playedWeeks) {
+      for (const group of pairByMatchupId(matchups)) {
+        if (group.length === 2) {
+          const [a, b] = group;
+          if (!cumulative[a.roster_id] || !cumulative[b.roster_id]) continue;
+          cumulative[a.roster_id].fpts += (a.points || 0);
+          cumulative[b.roster_id].fpts += (b.points || 0);
+          if ((a.points || 0) > (b.points || 0)) { cumulative[a.roster_id].wins++; cumulative[b.roster_id].losses++; }
+          else if ((a.points || 0) < (b.points || 0)) { cumulative[b.roster_id].wins++; cumulative[a.roster_id].losses++; }
+          else { cumulative[a.roster_id].ties++; cumulative[b.roster_id].ties++; }
+        } else {
+          for (const entry of group) { if (cumulative[entry.roster_id]) cumulative[entry.roster_id].fpts += (entry.points || 0); }
+        }
+      }
+      const rows = Object.entries(cumulative).map(([rosterId, c]) => {
+        const games = c.wins + c.losses + c.ties;
+        const winPct = games ? (c.wins + c.ties * 0.5) / games : 0;
+        return { rosterId: Number(rosterId), winPct, fpts: c.fpts };
+      });
+      const fptsVals = rows.map((r) => r.fpts);
+      const maxF = Math.max(...fptsVals), minF = Math.min(...fptsVals);
+      rows.forEach((r) => { const norm = maxF > minF ? (r.fpts - minF) / (maxF - minF) : 0.5; r.powerScore = r.winPct * 0.6 + norm * 0.4; });
+      rows.sort((a, b) => b.powerScore - a.powerScore);
+      const ranks = {};
+      rows.forEach((r, i) => { ranks[r.rosterId] = i + 1; });
+      timeline.push({ week, ranks });
+    }
+    return timeline;
+  }
+
+  function renderPowerTrendChart(timeline, standings) {
+    if (!timeline || timeline.length === 0) {
+      setContent('trend-content', '<div class="coming-soon">Not enough data yet to chart a trend. Check back once the draft is done or Week 1 wraps up.</div>');
+      return;
+    }
+    const teams = standings.map((s) => ({ rosterId: s.rosterId, teamName: s.teamName }));
+    const n = teams.length;
+    const points = timeline;
+    const padding = { top: 16, right: 20, bottom: 34, left: 30 };
+    const plotW = Math.max(360, points.length * 70);
+    const plotH = 280;
+    const width = plotW + padding.left + padding.right;
+    const height = plotH + padding.top + padding.bottom;
+
+    const xFor = (i) => padding.left + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
+    const yFor = (rank) => padding.top + ((rank - 1) / Math.max(1, n - 1)) * plotH;
+
+    let svg = `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Power ranking by week, one line per team">`;
+    svg += `<rect x="0" y="0" width="${width}" height="${height}" fill="var(--chart-surface)" />`;
+    for (let r = 1; r <= n; r++) {
+      const y = yFor(r);
+      svg += `<line x1="${padding.left}" y1="${y}" x2="${padding.left + plotW}" y2="${y}" stroke="var(--chart-grid)" stroke-width="1" />`;
+      svg += `<text x="${padding.left - 8}" y="${y + 3}" text-anchor="end" font-size="10" fill="var(--chart-muted)" font-family="-apple-system, Segoe UI, Roboto, sans-serif">${r}</text>`;
+    }
+    points.forEach((pt, i) => {
+      const x = xFor(i);
+      const label = pt.week === 'Preseason' ? 'Pre' : `Wk ${pt.week}`;
+      svg += `<text x="${x}" y="${height - 12}" text-anchor="middle" font-size="10" fill="var(--chart-muted)" font-family="-apple-system, Segoe UI, Roboto, sans-serif">${label}</text>`;
+    });
+
+    teams.forEach((t) => {
+      let d = '';
+      points.forEach((pt, i) => {
+        const rank = pt.ranks[t.rosterId];
+        if (rank == null) return;
+        const x = xFor(i), y = yFor(rank);
+        d += (d === '' ? 'M' : 'L') + x + ' ' + y + ' ';
+      });
+      svg += `<path data-roster="${t.rosterId}" d="${d}" fill="none" stroke="var(--chart-line-default)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.7" />`;
+    });
+    teams.forEach((t) => {
+      points.forEach((pt, i) => {
+        const rank = pt.ranks[t.rosterId];
+        if (rank == null) return;
+        const x = xFor(i), y = yFor(rank);
+        const label = pt.week === 'Preseason' ? 'Preseason' : `Week ${pt.week}`;
+        svg += `<circle data-roster="${t.rosterId}" cx="${x}" cy="${y}" r="3" fill="var(--chart-line-default)" opacity="0.7"><title>${escapeHtml(t.teamName)} — ${label}: #${rank}</title></circle>`;
+      });
+    });
+    svg += `</svg>`;
+
+    const legend = teams.map((t, i) => `<button type="button" class="legend-chip" data-roster="${t.rosterId}" data-color="${CHART_COLORS[i % CHART_COLORS.length]}">${escapeHtml(t.teamName)}</button>`).join('');
+
+    setContent('trend-content', `
+      <div class="chart-scroll">${svg}</div>
+      <div class="chart-legend">${legend}</div>
+      <button type="button" class="table-toggle-link" id="trend-table-toggle">Show as table instead</button>
+      <div id="trend-table" style="display:none; margin-top:10px; overflow-x:auto;"></div>
+    `);
+
+    const container = document.getElementById('trend-content');
+    const tableHtml = `<table><thead><tr><th>Team</th>${points.map((pt) => `<th>${pt.week === 'Preseason' ? 'Pre' : 'Wk ' + pt.week}</th>`).join('')}</tr></thead><tbody>${
+      teams.map((t) => `<tr><td>${escapeHtml(t.teamName)}</td>${points.map((pt) => `<td>${pt.ranks[t.rosterId] ?? '—'}</td>`).join('')}</tr>`).join('')
+    }</tbody></table>`;
+    document.getElementById('trend-table').innerHTML = tableHtml;
+
+    document.getElementById('trend-table-toggle').addEventListener('click', () => {
+      const tableEl = document.getElementById('trend-table');
+      const chartScroll = container.querySelector('.chart-scroll');
+      const legendEl = container.querySelector('.chart-legend');
+      const showingTable = tableEl.style.display !== 'none';
+      tableEl.style.display = showingTable ? 'none' : 'block';
+      chartScroll.style.display = showingTable ? 'block' : 'none';
+      legendEl.style.display = showingTable ? 'flex' : 'none';
+      document.getElementById('trend-table-toggle').textContent = showingTable ? 'Show as table instead' : 'Show chart instead';
+    });
+
+    let activeRoster = null;
+    function colorFor(rosterId) {
+      const idx = teams.findIndex((t) => String(t.rosterId) === String(rosterId));
+      return CHART_COLORS[idx % CHART_COLORS.length];
+    }
+    function applyHighlight(rosterId) {
+      container.querySelectorAll('path[data-roster]').forEach((p) => {
+        const isActive = rosterId != null && String(p.dataset.roster) === String(rosterId);
+        p.setAttribute('stroke', isActive ? colorFor(rosterId) : 'var(--chart-line-default)');
+        p.setAttribute('stroke-width', isActive ? '3' : '1.5');
+        p.setAttribute('opacity', rosterId == null ? '0.7' : (isActive ? '1' : '0.2'));
+      });
+      container.querySelectorAll('circle[data-roster]').forEach((c) => {
+        const isActive = rosterId != null && String(c.dataset.roster) === String(rosterId);
+        c.setAttribute('fill', isActive ? colorFor(rosterId) : 'var(--chart-line-default)');
+        c.setAttribute('opacity', rosterId == null ? '0.7' : (isActive ? '1' : '0.2'));
+      });
+      container.querySelectorAll('.legend-chip').forEach((chip) => {
+        const isActive = rosterId != null && String(chip.dataset.roster) === String(rosterId);
+        chip.classList.toggle('active', isActive);
+        chip.style.background = isActive ? chip.dataset.color : '';
+        chip.style.borderColor = isActive ? chip.dataset.color : '';
+      });
+    }
+    container.querySelectorAll('.legend-chip').forEach((chip) => {
+      chip.addEventListener('mouseenter', () => applyHighlight(chip.dataset.roster));
+      chip.addEventListener('mouseleave', () => applyHighlight(activeRoster));
+      chip.addEventListener('click', () => {
+        activeRoster = activeRoster === chip.dataset.roster ? null : chip.dataset.roster;
+        applyHighlight(activeRoster);
+      });
+    });
+  }
+
+  // ---------- brief for Claude / manual copy (weekly write-ups) ----------
 
   function buildBrief({ league, standings, recapWeek, powerRanked, positionBest, predictions }) {
     const lines = [];
@@ -766,7 +1183,31 @@
     return lines.join('\n');
   }
 
-  // ---------- Claude write-up generation ----------
+  function buildPreseasonBrief({ league, standings, ranked, predictions, week1Proj }) {
+    const lines = [];
+    lines.push(`League: ${(league.name || '').trim()} (Season ${league.season}) — PRE-SEASON, no games played yet.`);
+    lines.push('The numbers below are estimated from real draft results only (draft position as a proxy for player value), not real stat-based projections.');
+    lines.push('');
+    lines.push('DRAFT-BASED POWER RANKINGS (best to worst) with projected starting lineups:');
+    ranked.forEach((t, i) => lines.push(`${i + 1}. ${t.teamName} — grade ${t.powerScore.toFixed(0)} — starters: ${t.starters.map((s) => `${s.name} (${s.pos})`).join(', ')}`));
+    lines.push('');
+    lines.push('PREDICTIONS CONTEXT:');
+    lines.push(`Playoff spots: ${predictions.playoffSpots}. Early contenders: ${predictions.contenders.map((t) => t.teamName).join(', ')}.`);
+    lines.push(`On the bubble: ${predictions.bubble.map((t) => t.teamName).join(', ')}.`);
+    lines.push(`Early favorite: ${predictions.favorite.teamName}.`);
+    lines.push(`Darkhorses: ${predictions.darkhorses.map((t) => t.teamName).join(', ')}.`);
+    lines.push(`Tracking toward last place: ${predictions.cellar.teamName}.`);
+    if (week1Proj && week1Proj.length) {
+      lines.push('');
+      lines.push('WEEK 1 PROJECTED MATCHUPS:');
+      week1Proj.forEach((m) => lines.push(`${m.teamAName} vs ${m.teamBName} — ${m.favoredName} favored (${m.favoredPct}%)`));
+    }
+    lines.push('');
+    lines.push('Please write: (1) leave recap_narrative as a short one-line note that the season has not started yet, (2) one or two punchy sentences per team for power-ranking blurbs based on their draft (use the exact team names above, unchanged), and (3) a 2-4 paragraph pre-season predictions outlook covering projected contenders, the bubble, the early favorite, darkhorses, and who looks like they are tracking toward last place, clearly framed as an early guess based on the draft.');
+    return lines.join('\n');
+  }
+
+  // ---------- Claude write-up generation (weekly / pre-season) ----------
 
   function applyGeneratedContent(result) {
     if (result.recap_narrative) {
@@ -796,7 +1237,7 @@
     if (status.has_key) {
       btn.style.display = 'inline-block';
       btn.addEventListener('click', async () => {
-        if (!lastComputedBrief) { statusEl.textContent = 'Nothing to write up yet — this fills in once games are played.'; return; }
+        if (!lastComputedBrief) { statusEl.textContent = 'Nothing to write up yet — this fills in once the draft happens or games are played.'; return; }
         btn.disabled = true;
         btn.textContent = 'Writing…';
         statusEl.textContent = '';
@@ -804,7 +1245,7 @@
           const res = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ brief: lastComputedBrief }),
+            body: JSON.stringify({ brief: lastComputedBrief, kind: 'weekly' }),
           });
           const data = await res.json();
           if (data.available && data.result) {
@@ -823,11 +1264,136 @@
     } else {
       statusEl.textContent = 'No Anthropic API key found — copy the brief below into Claude yourself, or add a key (see README.md) for one-click write-ups.';
     }
+    return status.has_key;
   }
 
   function refreshBriefTextarea() {
     const box = document.getElementById('brief-text');
-    box.value = lastComputedBrief || '(This fills in once games have been played this season.)';
+    box.value = lastComputedBrief || '(This fills in once the draft happens or games have been played this season.)';
+  }
+
+  // ---------- newsletter ----------
+
+  function computeNewsletterContext({ league, standings, recapWeek, playersById, rosters, preseasonRanked }) {
+    const ctx = { seasonStarted: !!recapWeek, standings, recapWeekNum: recapWeek ? recapWeek.week : null, preseasonRanked };
+
+    if (recapWeek) {
+      const performances = [];
+      for (const entry of recapWeek.matchups) {
+        const starters = entry.starters || [];
+        const starterPts = entry.starters_points || [];
+        const teamName = teamNameByRosterId(standings, entry.roster_id);
+        starters.forEach((pid, idx) => {
+          if (!pid || pid === '0' || !playersById) return;
+          const info = playersById[pid];
+          if (!info) return;
+          performances.push({ name: info[0], pos: info[1], team: teamName, pts: starterPts[idx] || 0 });
+        });
+      }
+      performances.sort((a, b) => b.pts - a.pts);
+      ctx.topPerformers = performances.slice(0, 5);
+      ctx.bustPerformers = performances.filter((p) => p.pts <= 3).sort((a, b) => a.pts - b.pts).slice(0, 5);
+    }
+
+    const injuries = [];
+    if (playersById && rosters) {
+      for (const r of rosters) {
+        const teamName = teamNameByRosterId(standings, r.roster_id);
+        for (const pid of (r.players || [])) {
+          const info = playersById[pid];
+          if (info && info[3] && NOTABLE_INJURY_STATUSES.includes(info[3])) {
+            injuries.push({ name: info[0], pos: info[1], team: teamName, status: info[3] });
+          }
+        }
+      }
+    }
+    ctx.injuries = injuries.slice(0, 12);
+    return ctx;
+  }
+
+  function buildNewsletterBrief(ctx) {
+    const lines = [];
+    if (ctx.seasonStarted) {
+      lines.push(`Most recent completed week: Week ${ctx.recapWeekNum}.`);
+      lines.push('');
+      lines.push('TOP PERFORMERS THIS WEEK:');
+      ctx.topPerformers.forEach((p) => lines.push(`${p.name} (${p.pos}, ${p.team}) — ${fmt(p.pts)} pts`));
+      lines.push('');
+      lines.push('BIGGEST DISAPPOINTMENTS THIS WEEK (started, barely scored):');
+      ctx.bustPerformers.forEach((p) => lines.push(`${p.name} (${p.pos}, ${p.team}) — ${fmt(p.pts)} pts`));
+    } else {
+      lines.push('The season has not started yet — write this as a pre-season, draft-day newsletter instead of a weekly recap.');
+      if (ctx.preseasonRanked) {
+        lines.push('');
+        lines.push('DRAFT-BASED POWER RANKINGS (best to worst):');
+        ctx.preseasonRanked.forEach((t, i) => lines.push(`${i + 1}. ${t.teamName}`));
+      }
+    }
+    if (ctx.injuries.length) {
+      lines.push('');
+      lines.push('CURRENT INJURY / ROSTER STATUS REPORT (real, current Sleeper data):');
+      ctx.injuries.forEach((p) => lines.push(`${p.name} (${p.pos}, ${p.team}) — ${p.status}`));
+    }
+    lines.push('');
+    lines.push('STANDINGS:');
+    ctx.standings.forEach((s, i) => lines.push(`${i + 1}. ${s.teamName} — ${s.wins}-${s.losses}${s.ties ? '-' + s.ties : ''}, ${fmt(s.fpts)} PF`));
+    lines.push('');
+    lines.push('Write this as a witty weekly fantasy football newsletter article in classic newspaper style: a punchy headline, a dateline, a byline, a strong lede paragraph, then 3-5 body paragraphs covering the highlights, lowlights, and a few good-natured ribs aimed at specific teams — use only the real names and numbers above, never invent stats or events. End with a short one-line kicker.');
+    return lines.join('\n');
+  }
+
+  function applyNewsletterContent(result) {
+    document.getElementById('nl-headline').textContent = result.headline || 'The Weekly Wire';
+    document.getElementById('nl-dateline').textContent = result.dateline || '';
+    document.getElementById('nl-byline').textContent = result.byline || 'By the League Wire Staff';
+    const paragraphs = [result.lede_paragraph, ...(result.body_paragraphs || [])].filter(Boolean);
+    document.getElementById('nl-body').innerHTML = paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join('');
+    const kickerEl = document.getElementById('nl-kicker-line');
+    if (result.closing_line) {
+      kickerEl.textContent = result.closing_line;
+      kickerEl.style.display = 'block';
+    }
+  }
+
+  async function initNewsletterTab(ctx) {
+    lastNewsletterBrief = buildNewsletterBrief(ctx);
+    document.getElementById('nl-brief-text').value = lastNewsletterBrief;
+
+    const btn = document.getElementById('nl-generate-btn');
+    const statusEl = document.getElementById('nl-generate-status');
+    let status = { has_key: false };
+    try { status = await fetchJSON('/api/key-status'); } catch (e) { /* server not reachable */ }
+
+    if (status.has_key) {
+      btn.style.display = 'inline-block';
+      document.getElementById('nl-body').innerHTML = '<p class="coming-soon">Click "Write this week\'s newsletter" below to generate it, or read the plain-text brief.</p>';
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Writing…';
+        statusEl.textContent = '';
+        try {
+          const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ brief: lastNewsletterBrief, kind: 'newsletter' }),
+          });
+          const data = await res.json();
+          if (data.available && data.result) {
+            applyNewsletterContent(data.result);
+            statusEl.textContent = 'Written by Claude just now.';
+          } else {
+            statusEl.textContent = 'Could not generate: ' + (data.error || 'unknown error');
+          }
+        } catch (e) {
+          statusEl.textContent = 'Error: ' + e.message;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Write this week\'s newsletter';
+        }
+      });
+    } else {
+      document.getElementById('nl-body').innerHTML = '<p class="coming-soon">No Anthropic API key found — copy the plain-text brief below into Claude yourself to get this week\'s newsletter, or add a key (see README.md) for one click.</p>';
+    }
   }
 
   // ---------- header / banner ----------
@@ -840,7 +1406,7 @@
     if (league.status === 'pre_draft' || league.status === 'drafting') {
       const banner = document.getElementById('status-banner');
       banner.style.display = 'block';
-      banner.textContent = "The season hasn't started yet — league setup, rosters, and draft results are below. Weekly recap, power rankings, and predictions will fill in once games are played.";
+      banner.textContent = "The season hasn't started yet — league setup, rosters, and draft results are below. Weekly recap and the newsletter will fill in once games are played.";
     }
   }
 
@@ -856,6 +1422,7 @@
   // ---------- main ----------
 
   async function init() {
+    setupTabs();
     initGenerateSection();
     try {
       const [state, chain] = await Promise.all([sleeper.state(), buildSeasonChain(LEAGUE_ID)]);
@@ -871,35 +1438,57 @@
       const standings = computeStandings(rosters, usersById);
 
       renderLeagueSetup(current, users, standings);
-      renderDraft(current, playersById);
 
-      const seasonStarted = current.status === 'in_season' || current.status === 'complete';
+      const { draft, picks } = await fetchDraftInfo(current);
+      renderDraft(draft, picks, playersById, standings);
+
+      // Sleeper flips league.status to "in_season" as soon as the draft finishes --
+      // often well before any real games are played -- so use actual played weeks
+      // (not status) to decide whether to show real results or a draft-based estimate.
+      const weeks = await fetchAllWeeks(current.league_id, 18);
+      const played = playedOnly(weeks);
       const sectionIds = ['recap-content', 'power-content', 'positions-content', 'predictions-content'];
 
-      if (!seasonStarted) {
-        showComingSoon(sectionIds, "This section fills in once the draft happens and games are played. For now, check League Setup and Draft Results below.");
+      const preseasonRanked = computeDraftCapitalPower(picks, playersById, current.roster_positions, standings);
+      let recapWeek = null;
+
+      if (played.length > 0) {
+        recapWeek = played[played.length - 1];
+        renderWeeklyRecap(recapWeek, standings);
+
+        const powerRanked = computePowerRankings(standings);
+        renderPowerRankings(powerRanked);
+
+        const positionBest = computePositionStrength(played, standings, playersById);
+        renderPositionGroups(positionBest, 'starter pts');
+
+        const predictions = computePredictions(standings, current);
+        renderPredictions(predictions);
+
+        lastComputedBrief = buildBrief({ league: current, standings, recapWeek, powerRanked, positionBest, predictions });
+        refreshBriefTextarea();
+
+        renderPowerTrendChart(computePowerRankingTimeline(played, standings, preseasonRanked), standings);
+      } else if (preseasonRanked) {
+        renderPreseasonPower(preseasonRanked);
+        const positionBest = computePreseasonPositionStrength(picks, playersById, standings);
+        renderPositionGroups(positionBest, 'draft value');
+        const predictions = computePreseasonPredictions(preseasonRanked, current);
+        const week1Entry = weeks.find((w) => w.week === 1);
+        const week1Proj = computeWeek1Projection(week1Entry ? week1Entry.matchups : null, preseasonRanked);
+        renderPreseasonPredictions(predictions, week1Proj);
+        setContent('recap-content', '<div class="coming-soon">This fills in once games are played.</div>');
+        lastComputedBrief = buildPreseasonBrief({ league: current, standings, ranked: preseasonRanked, predictions, week1Proj });
+        refreshBriefTextarea();
+
+        renderPowerTrendChart(computePowerRankingTimeline([], standings, preseasonRanked), standings);
       } else {
-        const weeks = await fetchAllWeeks(current.league_id, 18);
-        const played = playedOnly(weeks);
-        if (played.length === 0) {
-          showComingSoon(sectionIds, "The season has started but no games have been played yet — this fills in after Week 1.");
-        } else {
-          const recapWeek = played[played.length - 1];
-          renderWeeklyRecap(recapWeek, standings);
-
-          const powerRanked = computePowerRankings(standings);
-          renderPowerRankings(powerRanked);
-
-          const positionBest = computePositionStrength(played, standings, playersById);
-          renderPositionGroups(positionBest);
-
-          const predictions = computePredictions(standings, current);
-          renderPredictions(predictions);
-
-          lastComputedBrief = buildBrief({ league: current, standings, recapWeek, powerRanked, positionBest, predictions });
-          refreshBriefTextarea();
-        }
+        showComingSoon(sectionIds, "This section fills in once the draft happens and games are played. For now, check League Setup and Draft Results below.");
+        renderPowerTrendChart(computePowerRankingTimeline([], standings, null), standings);
       }
+
+      const newsletterCtx = computeNewsletterContext({ league: current, standings, recapWeek, playersById, rosters, preseasonRanked });
+      await initNewsletterTab(newsletterCtx);
 
       const { seasons, records } = await computeHistoryAndRecords(chain);
       renderHistory(seasons, records);
