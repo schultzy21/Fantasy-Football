@@ -82,6 +82,16 @@ export type SleeperDraftPick = {
   metadata?: { first_name?: string; last_name?: string; position?: string; team?: string };
 };
 
+export type SleeperTransaction = {
+  transaction_id: string;
+  type: string; // "free_agent" | "waiver" | "trade"
+  status: string; // "complete" | "failed" | ...
+  roster_ids: number[];
+  adds: Record<string, number> | null; // player_id -> roster_id
+  drops: Record<string, number> | null; // player_id -> roster_id
+  created: number; // epoch ms
+};
+
 export type SleeperState = {
   week: number;
   season: string;

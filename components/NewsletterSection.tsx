@@ -8,7 +8,7 @@ export default function NewsletterSection({
 }: {
   leagueName: string;
   season: string;
-  week: number;
+  week: number | null;
   headline: string | null;
   article: string | null;
   claudeConfigured: boolean;
@@ -20,13 +20,17 @@ export default function NewsletterSection({
       <div className="card">
         <div className="eyebrow">The League Newsletter</div>
         <h2 className="sec">Weekly Newsletter</h2>
-        <p className="lead">A written weekly issue -- highlights, lowlights, and a few ribs at certain teams.</p>
+        <p className="lead">
+          A written weekly issue -- NFL news, highlights, lowlights, waiver moves, and a few ribs at certain
+          teams. Publishes automatically every Tuesday morning once that week&apos;s Monday Night Football
+          game has wrapped -- nothing to do here.
+        </p>
 
         {!article && (
           <p className="muted">
             {claudeConfigured
-              ? "No issue generated yet -- use the \"Generate This Week's Write-Up\" button on the Overview tab."
-              : "This section needs a real written article, so there's no numeric fallback here. Add an Anthropic API key (see the README) to generate it automatically, or copy the brief from the Overview tab into Claude yourself with a prompt like \"write this as a classic newspaper sports article.\""}
+              ? "No issue published yet. The first one lands after this league's first full week of games, next Tuesday morning."
+              : "This deployment doesn't have an ANTHROPIC_API_KEY configured, so the newsletter can't be written automatically -- see the README to add one."}
           </p>
         )}
 
@@ -35,7 +39,7 @@ export default function NewsletterSection({
             <div className="masthead">
               <div className="paper-name">{leagueName} Gazette</div>
               <div className="dateline">
-                {season} Season &middot; Week {week} Edition
+                {season} Season {week != null ? `· Week ${week} Edition` : "· Preseason Edition"}
               </div>
             </div>
             {headline && <div className="headline">{headline}</div>}

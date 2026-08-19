@@ -81,13 +81,17 @@ export function buildBrief(input: {
   lines.push("");
 
   if (positions.length > 0) {
-    lines.push("BEST POSITION GROUPS (starter points by position, season to date):");
+    lines.push(
+      rankingsAreProjected
+        ? "PROJECTED BEST POSITION GROUPS (based on draft capital):"
+        : "BEST POSITION GROUPS (starter points by position, season to date):",
+    );
     for (const p of positions) {
       const top = p.leaderboard[0];
-      if (top) lines.push(`  ${p.position}: ${top.team.teamName} leads (${top.points.toFixed(1)} pts)`);
+      if (top) lines.push(`  ${p.position}: ${top.team.teamName} leads (score ${top.points.toFixed(1)})`);
     }
   } else {
-    lines.push("BEST POSITION GROUPS: no games played yet.");
+    lines.push("BEST POSITION GROUPS: no data yet.");
   }
   lines.push("");
 

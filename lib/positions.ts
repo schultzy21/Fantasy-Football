@@ -3,7 +3,13 @@ import type { PlayersMap, SleeperMatchup } from "./types";
 
 export type PositionStrength = {
   position: string;
-  leaderboard: { team: Team; points: number }[];
+  leaderboard: {
+    team: Team;
+    points: number;
+    // Present only in preseason projection mode -- the real draft picks
+    // this score is based on, shown for transparency.
+    basedOnPicks?: { playerName: string; pickNo: number }[];
+  }[];
 };
 
 const TRACKED_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"];

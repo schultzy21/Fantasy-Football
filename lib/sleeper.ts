@@ -14,6 +14,7 @@ import type {
   SleeperMatchup,
   SleeperRoster,
   SleeperState,
+  SleeperTransaction,
   SleeperUser,
   PlayersMap,
 } from "./types";
@@ -68,6 +69,11 @@ export function getDrafts(leagueId: string): Promise<SleeperDraft[]> {
 
 export function getDraftPicks(draftId: string): Promise<SleeperDraftPick[]> {
   return getJson<SleeperDraftPick[]>(`/draft/${draftId}/picks`, 3600);
+}
+
+// "round" here is the week number for a redraft league's regular season.
+export function getTransactions(leagueId: string, round: number): Promise<SleeperTransaction[]> {
+  return getJson<SleeperTransaction[]>(`/league/${leagueId}/transactions/${round}`, 3600);
 }
 
 // The full player dictionary is ~20MB -- too big for Next.js's built-in fetch

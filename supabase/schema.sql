@@ -12,9 +12,11 @@ create table if not exists generated_content (
   primary key (season, week)
 );
 
--- Adds the newsletter columns (no-op if you already have them).
+-- Adds the newsletter and position-group-blurb columns (no-op if you
+-- already have them).
 alter table generated_content add column if not exists newsletter_headline text;
 alter table generated_content add column if not exists newsletter_article text;
+alter table generated_content add column if not exists position_group_blurbs jsonb;
 
 -- The smack-talk/banter box was removed (Sleeper's API has no way to read
 -- league chat), so its column and table are no longer used. Safe to drop:

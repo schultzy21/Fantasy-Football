@@ -25,10 +25,32 @@ async function getGeneratedContent(season: string, week: number): Promise<Genera
   return (data as GeneratedContentRow) ?? null;
 }
 
+// The newsletter publishes on its own weekly (Tuesday) schedule, which can
+// land on a different week number than the "current" one shown everywhere
+// else on the page (e.g. Sleeper's current week already ticked forward by
+// the time Tuesday's cron runs) -- so it's looked up independently as
+// "whichever issue was published most recently," not tied to the current week.
+async function getLatestNewsletter(
+  season: string,
+): Promise<{ week: number; headline: string | null; article: string | null } | null> {
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("generated_content")
+    .select("week, newsletter_headline, newsletter_article")
+    .eq("season", season)
+    .not("newsletter_article", "is", null)
+    .order("week", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  return { week: data.week, headline: data.newsletter_headline, article: data.newsletter_article };
+}
+
 export default async function Home() {
   const leagueId = process.env.SLEEPER_LEAGUE_ID ?? "1389331489925132288";
   const data = await getLeagueData(leagueId);
   const generated = await getGeneratedContent(data.season, data.state.week);
+  const newsletter = await getLatestNewsletter(data.season);
 
   const seasonTypeLabel =
     data.state.season_type === "pre" ? "Preseason" : data.state.season_type === "post" ? "Postseason" : "Regular Season";
@@ -97,7 +119,11 @@ export default async function Home() {
         history={data.rankingsHistory}
       />
 
-      <PositionsSection positions={data.positions} />
+      <PositionsSection
+        positions={data.positions}
+        isProjected={data.rankingsAreProjected}
+        blurbs={generated?.position_group_blurbs ?? null}
+      />
 
       <PredictionsSection
         predictions={data.predictions}
@@ -110,9 +136,9 @@ export default async function Home() {
       <NewsletterSection
         leagueName={data.leagueName}
         season={data.season}
-        week={data.state.week}
-        headline={generated?.newsletter_headline ?? null}
-        article={generated?.newsletter_article ?? null}
+        week={newsletter?.week ?? null}
+        headline={newsletter?.headline ?? null}
+        article={newsletter?.article ?? null}
         claudeConfigured={claudeConfigured()}
       />
 

@@ -18,6 +18,7 @@ export type GeneratedContentRow = {
   weekly_recap: string | null;
   power_ranking_blurbs: Record<string, string> | null;
   predictions_outlook: string | null;
+  position_group_blurbs: Record<string, string> | null;
   newsletter_headline: string | null;
   newsletter_article: string | null;
   generated_at: string;

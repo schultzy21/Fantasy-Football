@@ -1,4 +1,5 @@
-import { computeDraftStrength } from "./draft-strength";
+import { computeDraftStrength, computeDraftStrengthByPosition } from "./draft-strength";
+import type { PositionStrength } from "./positions";
 import type { PowerRank } from "./power-rankings";
 import type { PredictionsOutlook } from "./predictions";
 import type { Team } from "./standings";
@@ -18,6 +19,27 @@ export function computePreseasonPowerRankings(
   scored.sort((a, b) => b.score - a.score);
 
   return scored.map((s, i) => ({ team: s.team, rank: i + 1, score: s.score, trend: "new" as const }));
+}
+
+// Best position groups, preseason: same draft-capital idea as the power
+// rankings above, but bucketed by position -- this league's real draft order
+// stands in for ADP until real starter stats exist.
+export function computePreseasonPositionStrength(
+  teams: Team[],
+  draftPicks: (SleeperDraftPick & { playerName: string })[],
+): PositionStrength[] {
+  const teamsByRoster = new Map(teams.map((t) => [t.rosterId, t]));
+  const byPosition = computeDraftStrengthByPosition(draftPicks);
+
+  return byPosition.map((p) => ({
+    position: p.position,
+    leaderboard: p.leaderboard
+      .map((entry) => {
+        const team = teamsByRoster.get(entry.rosterId);
+        return team ? { team, points: entry.score, basedOnPicks: entry.picks } : null;
+      })
+      .filter((x): x is { team: Team; points: number; basedOnPicks: { playerName: string; pickNo: number }[] } => x !== null),
+  }));
 }
 
 // Projects the season using draft-capital scores as team strength and the

@@ -3,7 +3,11 @@ import { getLeagueHistory, type LeagueRecords, type SeasonSummary } from "./hist
 import { computePositionStrength, type PositionStrength } from "./positions";
 import { computePowerRankings, type PowerRank } from "./power-rankings";
 import { computePredictions, type PredictionsOutlook } from "./predictions";
-import { computePreseasonPowerRankings, computePreseasonPredictions } from "./preseason";
+import {
+  computePreseasonPositionStrength,
+  computePreseasonPowerRankings,
+  computePreseasonPredictions,
+} from "./preseason";
 import { buildLatestCompletedRecap, type WeeklyRecap } from "./recap";
 import { computeRankingsHistory, type RankingsHistoryPoint } from "./rankings-history";
 import * as sleeper from "./sleeper";
@@ -69,12 +73,6 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     }
   }
 
-  let positions: PositionStrength[] = [];
-  if (hasSeasonStarted) {
-    const players = await sleeper.getPlayers();
-    positions = computePositionStrength(teamsByRoster, weeklyMatchups, players);
-  }
-
   // Draft results (useful pre-season, and the input for projected rankings).
   let draftPicks: (SleeperDraftPick & { playerName: string })[] = [];
   try {
@@ -101,6 +99,14 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   }
 
   const rankingsAreProjected = !hasSeasonStarted && draftPicks.length > 0;
+
+  let positions: PositionStrength[] = [];
+  if (hasSeasonStarted) {
+    const players = await sleeper.getPlayers();
+    positions = computePositionStrength(teamsByRoster, weeklyMatchups, players);
+  } else if (rankingsAreProjected) {
+    positions = computePreseasonPositionStrength(teams, draftPicks);
+  }
 
   const powerRankings = rankingsAreProjected
     ? computePreseasonPowerRankings(teams, draftPicks)
