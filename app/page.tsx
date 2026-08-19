@@ -1,8 +1,8 @@
-import BanterSection from "@/components/BanterSection";
 import BriefBox from "@/components/BriefBox";
 import DraftSection from "@/components/DraftSection";
 import GenerateButton from "@/components/GenerateButton";
 import HistorySection from "@/components/HistorySection";
+import NewsletterSection from "@/components/NewsletterSection";
 import PositionsSection from "@/components/PositionsSection";
 import PowerRankingsSection from "@/components/PowerRankingsSection";
 import PredictionsSection from "@/components/PredictionsSection";
@@ -53,7 +53,7 @@ export default async function Home() {
         <a href="#positions">Positions</a>
         <a href="#predictions">Predictions</a>
         <a href="#draft">Draft</a>
-        <a href="#banter">Banter</a>
+        <a href="#newsletter">Newsletter</a>
       </nav>
 
       <section id="overview" className="view">
@@ -90,19 +90,30 @@ export default async function Home() {
 
       <WeeklyRecapSection recap={data.recap} narrative={generated?.weekly_recap ?? null} />
 
-      <PowerRankingsSection rankings={data.powerRankings} blurbs={generated?.power_ranking_blurbs ?? null} />
+      <PowerRankingsSection
+        rankings={data.powerRankings}
+        blurbs={generated?.power_ranking_blurbs ?? null}
+        isProjected={data.rankingsAreProjected}
+        history={data.rankingsHistory}
+      />
 
       <PositionsSection positions={data.positions} />
 
-      <PredictionsSection predictions={data.predictions} narrative={generated?.predictions_outlook ?? null} />
+      <PredictionsSection
+        predictions={data.predictions}
+        narrative={generated?.predictions_outlook ?? null}
+        isProjected={data.rankingsAreProjected}
+      />
 
       <DraftSection draftPicks={data.draftPicks} />
 
-      <BanterSection
+      <NewsletterSection
+        leagueName={data.leagueName}
         season={data.season}
         week={data.state.week}
-        banter={data.banter}
-        roast={generated?.banter_roast ?? null}
+        headline={generated?.newsletter_headline ?? null}
+        article={generated?.newsletter_article ?? null}
+        claudeConfigured={claudeConfigured()}
       />
 
       <footer className="foot">

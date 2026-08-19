@@ -3,14 +3,16 @@ import type { PredictionsOutlook } from "@/lib/predictions";
 export default function PredictionsSection({
   predictions,
   narrative,
+  isProjected,
 }: {
   predictions: PredictionsOutlook;
   narrative: string | null;
+  isProjected: boolean;
 }) {
   return (
     <section id="predictions" className="view">
       <div className="card">
-        <div className="eyebrow">Refreshed Every Week</div>
+        <div className="eyebrow">{isProjected ? "Preseason Projection" : "Refreshed Every Week"}</div>
         <h2 className="sec">Predictions Outlook</h2>
 
         {!predictions.hasEnoughData && (
@@ -19,6 +21,12 @@ export default function PredictionsSection({
 
         {predictions.hasEnoughData && (
           <>
+            {isProjected && (
+              <p className="lead">
+                No games have been played yet -- this is a projection built from draft capital and the
+                schedule, not real results. Treat it as a fun preseason guess, not a forecast.
+              </p>
+            )}
             {narrative && <p className="lead">{narrative}</p>}
 
             <div className="grid2">

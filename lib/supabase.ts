@@ -12,21 +12,13 @@ export const supabase = supabaseConfigured
   ? createClient(url as string, anonKey as string)
   : null;
 
-export type BanterEntry = {
-  id: number;
-  week: number;
-  season: string;
-  quote: string;
-  author: string | null;
-  created_at: string;
-};
-
 export type GeneratedContentRow = {
   season: string;
   week: number;
   weekly_recap: string | null;
   power_ranking_blurbs: Record<string, string> | null;
   predictions_outlook: string | null;
-  banter_roast: string | null;
+  newsletter_headline: string | null;
+  newsletter_article: string | null;
   generated_at: string;
 };

@@ -8,7 +8,8 @@ export type GeneratedWriteups = {
   weeklyRecap: string;
   powerRankingBlurbs: Record<string, string>; // key = rosterId as string
   predictionsOutlook: string;
-  banterRoast: string;
+  newsletterHeadline: string;
+  newsletterArticle: string;
 };
 
 export function claudeConfigured(): boolean {
@@ -30,16 +31,23 @@ export async function generateWriteups(briefText: string): Promise<GeneratedWrit
       "You write the weekly league newspaper for a fantasy football league. " +
       "Tone: punchy, funny, a little roasty, but never mean-spirited about anything outside the game. " +
       "You are given a plain-text data brief with real stats -- never invent stats, records, or scores " +
-      "that aren't in the brief. Respond with ONLY a single JSON object, no markdown fences, no commentary, " +
+      "that aren't in the brief. If the brief says rankings/predictions are PROJECTED (preseason, based on " +
+      "draft capital, not real games), make that clear in your writing -- don't write about a game or score " +
+      "that hasn't happened. Respond with ONLY a single JSON object, no markdown fences, no commentary, " +
       'matching this shape: {"weeklyRecap": string, "powerRankingBlurbs": {"<rosterId>": string, ...}, ' +
-      '"predictionsOutlook": string, "banterRoast": string}. ' +
+      '"predictionsOutlook": string, "newsletterHeadline": string, "newsletterArticle": string}. ' +
       "weeklyRecap: 2-4 sentence recap of the most recent completed week, or a short note that the season " +
       "hasn't started if there's no week to recap yet. " +
       "powerRankingBlurbs: one punchy sentence per team, keyed by the roster ID given in the brief. " +
       "predictionsOutlook: a short paragraph covering the playoff picture, bubble teams, the title favorite, " +
       "darkhorses, and who's pacing for last -- or a short note that it's too early if there's not enough data. " +
-      "banterRoast: 1-3 sentences riffing on the submitted banter quotes and roasting the week's lowest score. " +
-      "If no banter quotes were submitted, just roast the low score.",
+      "newsletterHeadline: a short, punchy tabloid-style headline (under 60 characters) for this week's issue. " +
+      "newsletterArticle: a full weekly newspaper article in classic sports-page style, 4-7 short paragraphs, " +
+      "plain text with a blank line between paragraphs (no markdown). Cover: a lede on the week's biggest " +
+      "story, player highlights and lowlights (use real player/team names from the brief when available), " +
+      "a few good-natured ribs aimed at specific teams by name, and close with a line teasing next week. " +
+      "If there's no real week to report on yet (preseason), write it as a draft-day/offseason preview issue " +
+      "instead -- draft grades, way-too-early bold predictions, teams to watch -- clearly framed as preseason.",
     messages: [{ role: "user", content: briefText }],
   });
 
@@ -52,7 +60,8 @@ export async function generateWriteups(briefText: string): Promise<GeneratedWrit
       weeklyRecap: String(parsed.weeklyRecap ?? ""),
       powerRankingBlurbs: parsed.powerRankingBlurbs ?? {},
       predictionsOutlook: String(parsed.predictionsOutlook ?? ""),
-      banterRoast: String(parsed.banterRoast ?? ""),
+      newsletterHeadline: String(parsed.newsletterHeadline ?? ""),
+      newsletterArticle: String(parsed.newsletterArticle ?? ""),
     };
   } catch {
     return null;

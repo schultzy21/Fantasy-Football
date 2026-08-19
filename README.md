@@ -2,8 +2,10 @@
 
 A single website that is the home page for your Sleeper fantasy football league. It
 reads live data from Sleeper every time someone visits, and shows standings, power
-rankings, position insights, a predictions outlook, league history, draft results,
-and a banter/roast section you fill in by hand.
+rankings (with a week-by-week trend chart), position insights, a predictions
+outlook, league history, draft results, and a weekly written newsletter. Before the
+season starts, power rankings and predictions run on a projection built from draft
+capital instead of sitting empty.
 
 This doc assumes zero coding background. Follow it top to bottom once, then just use
 the two short "every week" steps at the bottom.
@@ -16,10 +18,9 @@ Three free services work together:
 - **Vercel** -- runs the website and gives you a public URL. Every time new code is
   pushed to GitHub, Vercel automatically rebuilds and updates the live site. This is
   what makes it "auto-update."
-- **Supabase** -- a small database that remembers two things the Sleeper API can't
-  give us: the banter quotes you paste in, and the AI-written weekly blurbs (so
-  they're generated once and everyone sees the same version, instead of regenerating
-  on every visit).
+- **Supabase** -- a small database that caches the AI-written weekly content (recap,
+  power ranking blurbs, predictions, newsletter) so it's generated once and everyone
+  sees the same version, instead of regenerating on every visit.
 
 Nothing runs on your own computer once it's deployed. The site fetches fresh data
 from Sleeper's public API on its own, on a timer (every 5 minutes) -- you don't
@@ -29,17 +30,18 @@ have to "run an update."
 
 ## One-time setup
 
-### 1. Create the database tables in Supabase
+### 1. Create the database table in Supabase
 
-You already created a Supabase project. Now it needs two tables:
+You already created a Supabase project. Now it needs one table:
 
 1. Go to your project at https://supabase.com/dashboard/project/drkqedzlrowgrhesxcvk
 2. In the left sidebar, click **SQL Editor** -> **New query**.
 3. Open the file `supabase/schema.sql` in this repo, copy all of it, paste it into
    the SQL editor, and click **Run**.
 
-That creates a `banter_entries` table (for the quotes you paste in) and a
-`generated_content` table (a cache for the AI write-ups). You only do this once.
+That creates a `generated_content` table -- a cache for the AI write-ups. The
+script is safe to re-run any time (e.g. after this update) if you already ran an
+earlier version of it.
 
 ### 2. Connect the repo to Vercel
 
@@ -101,23 +103,17 @@ Open http://localhost:3000 in your browser.
 
 **Nothing is required.** The page re-checks Sleeper for fresh data automatically
 (about every 5 minutes) whenever someone loads it. Standings, recaps, power
-rankings, and predictions update themselves once games are played.
+rankings, the trend chart, and predictions update themselves once games are played.
 
-Two optional things you might do each week:
-
-### Paste in the banter
-
-Scroll to the **Banter & Low-Score Roast** section at the bottom of the page, type a
-quote from the group chat into the box, optionally say who said it, and click **Add
-Quote**. It's saved in Supabase and shows up for everyone who visits.
+One optional thing you might do each week:
 
 ### Generate the AI write-up (only if you added an Anthropic key)
 
 If you've added an `ANTHROPIC_API_KEY` (see below), you'll see a **Generate This
 Week's Write-Up** button near the top of the page. Click it once each week (after
 that week's games finish, ideally) and it writes the recap, power ranking blurbs,
-predictions, and banter roast in one shot. It's saved so every visitor sees the same
-version -- click **Regenerate** if you want a fresh take.
+predictions, and the newspaper-style newsletter in one shot. It's saved so every
+visitor sees the same version -- click **Regenerate** if you want a fresh take.
 
 If you never add a key, you'll instead see a **Copy Brief** button with a clean
 text summary of the week's numbers -- paste that into Claude.ai yourself with a
@@ -129,7 +125,7 @@ same kind of write-up by hand.
 ## Adding an Anthropic API key later
 
 This turns on the automatic AI write-ups (weekly recap narrative, power ranking
-blurbs, predictions outlook, and the banter roast).
+blurbs, predictions outlook, and the weekly newsletter article).
 
 1. Go to https://console.anthropic.com, sign in, and create an API key (Settings ->
    API Keys -> Create Key).
@@ -142,6 +138,18 @@ The site uses Claude Sonnet 5 (`claude-sonnet-5`). Cost is small: each click of
 "Generate" is one short request, well under a cent.
 
 ---
+
+## How preseason projections work
+
+Before any games are played, there's no performance data to rank teams on. Once
+the draft finishes (but before Week 1 kicks off), the site instead ranks teams by
+**average draft pick value** -- earlier picks count for more -- and uses that same
+score to simulate the schedule (an Elo-style win probability per matchup) to
+project a full-season outlook: playoff picture, favorite, darkhorses, and who's
+pacing for last. Both the Power Rankings and Predictions Outlook sections are
+clearly labeled "Preseason Projection" while this is active, and switch over to
+real results automatically once Week 1 finishes. It's a fun guess, not a forecast
+-- treat it that way.
 
 ## Adding past champions by hand
 
@@ -169,8 +177,8 @@ supabase/schema.sql   Run this once in the Supabase SQL editor (see step 1 above
 - **Page loads but sections are empty / say "not enough data yet"**: normal before
   the draft and before Week 1 finishes -- this league's 2026 season hasn't started
   as of this writing.
-- **Banter box says "not configured"**: the two Supabase environment variables are
-  missing from Vercel (or `.env.local` if running locally) -- see step 2/local setup
-  above.
 - **"Generate" button gives an error**: the Anthropic key is missing or invalid, or
   you're out of API credit at console.anthropic.com.
+- **Generated write-ups don't save / newsletter never persists**: the two Supabase
+  environment variables are missing from Vercel (or `.env.local` if running
+  locally) -- see step 2/local setup above.

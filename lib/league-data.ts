@@ -3,11 +3,11 @@ import { getLeagueHistory, type LeagueRecords, type SeasonSummary } from "./hist
 import { computePositionStrength, type PositionStrength } from "./positions";
 import { computePowerRankings, type PowerRank } from "./power-rankings";
 import { computePredictions, type PredictionsOutlook } from "./predictions";
+import { computePreseasonPowerRankings, computePreseasonPredictions } from "./preseason";
 import { buildLatestCompletedRecap, type WeeklyRecap } from "./recap";
+import { computeRankingsHistory, type RankingsHistoryPoint } from "./rankings-history";
 import * as sleeper from "./sleeper";
 import { buildTeams, sortByStandings, type Team } from "./standings";
-import { supabase } from "./supabase";
-import type { BanterEntry } from "./supabase";
 import type { SleeperDraftPick, SleeperMatchup, SleeperState } from "./types";
 
 export type LeagueData = {
@@ -18,12 +18,13 @@ export type LeagueData = {
   hasSeasonStarted: boolean;
   standings: Team[];
   powerRankings: PowerRank[];
+  rankingsAreProjected: boolean;
+  rankingsHistory: RankingsHistoryPoint[];
   recap: WeeklyRecap | null;
   positions: PositionStrength[];
   predictions: PredictionsOutlook;
   history: { seasons: SeasonSummary[]; records: LeagueRecords };
   draftPicks: (SleeperDraftPick & { playerName: string })[];
-  banter: BanterEntry[];
   brief: string;
 };
 
@@ -68,27 +69,13 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     }
   }
 
-  const powerRankings = computePowerRankings(teams, hasSeasonStarted ? recentAvgByRoster : undefined);
-
   let positions: PositionStrength[] = [];
   if (hasSeasonStarted) {
     const players = await sleeper.getPlayers();
     positions = computePositionStrength(teamsByRoster, weeklyMatchups, players);
   }
 
-  const predictions = computePredictions(
-    powerRankings,
-    teams,
-    league.settings.playoff_teams ?? 6,
-    weeklyMatchups,
-    state.week,
-  );
-
-  const history = league.previous_league_id
-    ? await getLeagueHistory(league).catch(() => ({ seasons: [], records: { highestSingleWeekScore: null } }))
-    : { seasons: [], records: { highestSingleWeekScore: null } };
-
-  // Draft results (useful pre-season, when there are no games to recap yet).
+  // Draft results (useful pre-season, and the input for projected rankings).
   let draftPicks: (SleeperDraftPick & { playerName: string })[] = [];
   try {
     const drafts = await sleeper.getDrafts(leagueId);
@@ -113,7 +100,28 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     // Draft not run yet, or Sleeper hiccuped -- fine to show nothing here.
   }
 
-  const banter = await getBanter(league.season, state.week);
+  const rankingsAreProjected = !hasSeasonStarted && draftPicks.length > 0;
+
+  const powerRankings = rankingsAreProjected
+    ? computePreseasonPowerRankings(teams, draftPicks)
+    : computePowerRankings(teams, hasSeasonStarted ? recentAvgByRoster : undefined);
+
+  const predictions = rankingsAreProjected
+    ? computePreseasonPredictions(powerRankings, league.settings.playoff_teams ?? 6, weeklyMatchups)
+    : computePredictions(powerRankings, teams, league.settings.playoff_teams ?? 6, weeklyMatchups, state.week);
+
+  const preseasonRanksForHistory = rankingsAreProjected
+    ? new Map(powerRankings.map((pr) => [pr.team.rosterId, pr.rank]))
+    : draftPicks.length > 0
+      ? new Map(
+          computePreseasonPowerRankings(teams, draftPicks).map((pr) => [pr.team.rosterId, pr.rank]),
+        )
+      : undefined;
+  const rankingsHistory = computeRankingsHistory(teams, weeklyMatchups, preseasonRanksForHistory);
+
+  const history = league.previous_league_id
+    ? await getLeagueHistory(league).catch(() => ({ seasons: [], records: { highestSingleWeekScore: null } }))
+    : { seasons: [], records: { highestSingleWeekScore: null } };
 
   const brief = buildBrief({
     leagueName: league.name.trim(),
@@ -122,10 +130,11 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     seasonType: state.season_type,
     standings,
     powerRankings,
+    rankingsAreProjected,
     recap,
     positions,
     predictions,
-    banter,
+    draftPicks,
   });
 
   return {
@@ -136,25 +145,13 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     hasSeasonStarted,
     standings,
     powerRankings,
+    rankingsAreProjected,
+    rankingsHistory,
     recap,
     positions,
     predictions,
     history,
     draftPicks,
-    banter,
     brief,
   };
-}
-
-async function getBanter(season: string, week: number): Promise<BanterEntry[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("banter_entries")
-    .select("*")
-    .eq("season", season)
-    .eq("week", week)
-    .order("created_at", { ascending: false })
-    .limit(50);
-  if (error || !data) return [];
-  return data as BanterEntry[];
 }

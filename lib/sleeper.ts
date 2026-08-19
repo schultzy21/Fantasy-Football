@@ -70,8 +70,23 @@ export function getDraftPicks(draftId: string): Promise<SleeperDraftPick[]> {
   return getJson<SleeperDraftPick[]>(`/draft/${draftId}/picks`, 3600);
 }
 
-// The full player dictionary is several megabytes. Sleeper asks that it be
-// fetched at most once a day, so we cache it for 24 hours.
-export function getPlayers(): Promise<PlayersMap> {
-  return getJson<PlayersMap>(`/players/nfl`, 86400);
+// The full player dictionary is ~20MB -- too big for Next.js's built-in fetch
+// data cache (2MB item limit), so we hand-roll a simple in-memory cache here
+// instead. Sleeper asks that this endpoint be fetched at most once a day;
+// this cache lives for the lifetime of the server process, which in practice
+// means well under one fetch/day for a low-traffic league site.
+let playersCache: { data: PlayersMap; fetchedAt: number } | null = null;
+const PLAYERS_CACHE_MS = 24 * 60 * 60 * 1000;
+
+export async function getPlayers(): Promise<PlayersMap> {
+  if (playersCache && Date.now() - playersCache.fetchedAt < PLAYERS_CACHE_MS) {
+    return playersCache.data;
+  }
+  const res = await fetch(`${BASE}/players/nfl`, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Sleeper API /players/nfl failed: ${res.status} ${res.statusText}`);
+  }
+  const data = (await res.json()) as PlayersMap;
+  playersCache = { data, fetchedAt: Date.now() };
+  return data;
 }
