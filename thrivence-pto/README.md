@@ -62,8 +62,8 @@ football site.
 
    | Name | Value |
    |---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | *(from Supabase -> Project Settings -> API)* |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | *(from Supabase -> Project Settings -> API)* |
+   | `SUPABASE_URL` | *(from Supabase -> Project Settings -> API)* |
+   | `SUPABASE_ANON_KEY` | *(from Supabase -> Project Settings -> API)* |
    | `PTO_SUMMARY_PASSWORD` | `Thrivence` (or whatever you'd like the leadership password to be) |
 
 6. Click **Deploy**. After a minute or two you'll get a live URL like
