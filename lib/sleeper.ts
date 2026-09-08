@@ -21,6 +21,14 @@ import type {
 
 const BASE = "https://api.sleeper.app/v1";
 
+// Baruka Ta Adenine's current league ID, used if SLEEPER_LEAGUE_ID isn't
+// set as an environment variable -- keeps the site working out of the box.
+const DEFAULT_LEAGUE_ID = "1389331489925132288";
+
+export function getLeagueId(): string {
+  return process.env.SLEEPER_LEAGUE_ID ?? DEFAULT_LEAGUE_ID;
+}
+
 async function getJson<T>(path: string, revalidateSeconds: number): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     next: { revalidate: revalidateSeconds },

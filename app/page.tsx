@@ -10,6 +10,7 @@ import StandingsTable from "@/components/StandingsTable";
 import WeeklyRecapSection from "@/components/WeeklyRecapSection";
 import { claudeConfigured } from "@/lib/claude";
 import { getLeagueData } from "@/lib/league-data";
+import * as sleeper from "@/lib/sleeper";
 import { supabase, type GeneratedContentRow } from "@/lib/supabase";
 
 export const revalidate = 300;
@@ -47,8 +48,7 @@ async function getLatestNewsletter(
 }
 
 export default async function Home() {
-  const leagueId = process.env.SLEEPER_LEAGUE_ID ?? "1389331489925132288";
-  const data = await getLeagueData(leagueId);
+  const data = await getLeagueData(sleeper.getLeagueId());
   const generated = await getGeneratedContent(data.season, data.state.week);
   const newsletter = await getLatestNewsletter(data.season);
 

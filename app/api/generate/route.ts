@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { claudeConfigured, generateWriteups } from "@/lib/claude";
 import { getLeagueData } from "@/lib/league-data";
+import { getLeagueId } from "@/lib/sleeper";
 import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +14,8 @@ export async function POST() {
     );
   }
 
-  const leagueId = process.env.SLEEPER_LEAGUE_ID;
-  if (!leagueId) {
-    return NextResponse.json({ error: "SLEEPER_LEAGUE_ID is not set." }, { status: 500 });
-  }
-
   try {
-    const data = await getLeagueData(leagueId);
+    const data = await getLeagueData(getLeagueId());
     const generated = await generateWriteups(data.brief);
     if (!generated) {
       return NextResponse.json({ error: "Claude did not return a usable response." }, { status: 502 });

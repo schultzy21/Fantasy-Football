@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateNewsletter } from "@/lib/claude";
 import { getNewsletterBriefContext } from "@/lib/newsletter-brief";
+import { getLeagueId } from "@/lib/sleeper";
 import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -34,13 +35,8 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ error: "Supabase is not configured, nowhere to save the newsletter." }, { status: 500 });
   }
 
-  const leagueId = process.env.SLEEPER_LEAGUE_ID;
-  if (!leagueId) {
-    return NextResponse.json({ error: "SLEEPER_LEAGUE_ID is not set." }, { status: 500 });
-  }
-
   try {
-    const { season, targetWeek, brief } = await getNewsletterBriefContext(leagueId);
+    const { season, targetWeek, brief } = await getNewsletterBriefContext(getLeagueId());
 
     // Idempotent: don't regenerate (and re-spend on web search) if this
     // week's issue already exists.
