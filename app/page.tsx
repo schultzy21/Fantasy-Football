@@ -140,6 +140,7 @@ export default async function Home() {
         headline={newsletter?.headline ?? null}
         article={newsletter?.article ?? null}
         claudeConfigured={claudeConfigured()}
+        targetWeek={data.recap?.week ?? data.state.week}
       />
 
       <footer className="foot">

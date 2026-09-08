@@ -1,7 +1,11 @@
-import type { LineupEfficiency } from "./lineup-efficiency";
-import type { WeeklyRecap } from "./recap";
-import type { Team } from "./standings";
-import type { PlayersMap, SleeperTransaction } from "./types";
+import { computeLineupEfficiency, type LineupEfficiency } from "./lineup-efficiency";
+import { buildLatestCompletedRecap, type WeeklyRecap } from "./recap";
+import * as sleeper from "./sleeper";
+import { buildTeams, type Team } from "./standings";
+import type { PlayersMap, SleeperMatchup, SleeperTransaction } from "./types";
+
+const DEFAULT_REGULAR_SEASON_WEEKS = 14;
+const MAX_WEEKS = 18;
 
 export type TransactionSummary = {
   teamName: string;
@@ -110,4 +114,97 @@ export function buildNewsletterBrief(input: {
   }
 
   return lines.join("\n");
+}
+
+export type NewsletterBriefContext = {
+  season: string;
+  targetWeek: number;
+  isPreseason: boolean;
+  brief: string;
+};
+
+// All the data-gathering behind the newsletter brief, shared by the
+// automatic cron route (app/api/cron/newsletter) and the plain-text
+// on-demand endpoint (app/api/newsletter-brief) used for the manual
+// "ask Claude to write this week's newsletter" workflow.
+export async function getNewsletterBriefContext(leagueId: string): Promise<NewsletterBriefContext> {
+  const [league, state, users, rosters] = await Promise.all([
+    sleeper.getLeague(leagueId),
+    sleeper.getState(),
+    sleeper.getUsers(leagueId),
+    sleeper.getRosters(leagueId),
+  ]);
+
+  const teams = buildTeams(league, users, rosters);
+  const teamsByRoster = new Map(teams.map((t) => [t.rosterId, t]));
+
+  const lastRegularWeek = Math.min(
+    (league.settings.playoff_week_start ?? DEFAULT_REGULAR_SEASON_WEEKS + 1) - 1,
+    MAX_WEEKS,
+  );
+  const weekNumbers = Array.from({ length: Math.max(lastRegularWeek, 1) }, (_, i) => i + 1);
+  const weeklyMatchups: SleeperMatchup[][] = await Promise.all(
+    weekNumbers.map((w) => sleeper.getMatchups(leagueId, w).catch(() => [] as SleeperMatchup[])),
+  );
+
+  const recap = buildLatestCompletedRecap(weeklyMatchups, teamsByRoster);
+  const isPreseason = !recap;
+  const targetWeek = recap?.week ?? state.week;
+
+  let draftHighlights: string[] = [];
+  let transactionsSummary: TransactionSummary[] = [];
+  let lineupEfficiency: LineupEfficiency[] = [];
+
+  if (isPreseason) {
+    try {
+      const drafts = await sleeper.getDrafts(leagueId);
+      const draft = drafts[0];
+      if (draft) {
+        const picks = await sleeper.getDraftPicks(draft.draft_id);
+        const players = await sleeper.getPlayers();
+        draftHighlights = picks
+          .sort((a, b) => a.pick_no - b.pick_no)
+          .slice(0, 20)
+          .map((p) => {
+            const name =
+              p.metadata?.first_name && p.metadata?.last_name
+                ? `${p.metadata.first_name} ${p.metadata.last_name}`
+                : players[p.player_id]?.full_name ?? "Unknown Player";
+            const team = teamsByRoster.get(p.roster_id)?.teamName ?? `Roster ${p.roster_id}`;
+            return `Pick ${p.pick_no}: ${team} took ${name} (${p.metadata?.position ?? ""})`;
+          });
+      }
+    } catch {
+      // Fine to run without draft highlights if this fails.
+    }
+  } else {
+    const players = await sleeper.getPlayers();
+    const weekIndex = targetWeek - 1;
+    const weekMatchups = weeklyMatchups[weekIndex] ?? [];
+
+    lineupEfficiency = computeLineupEfficiency(weekMatchups, teamsByRoster, league.roster_positions, players);
+
+    const weekPointsByPlayer = new Map<string, number>();
+    for (const m of weekMatchups) {
+      for (const [playerId, pts] of Object.entries(m.players_points ?? {})) {
+        weekPointsByPlayer.set(playerId, pts);
+      }
+    }
+
+    const transactions = await sleeper.getTransactions(leagueId, targetWeek).catch(() => []);
+    transactionsSummary = summarizeTransactions(transactions, teamsByRoster, players, weekPointsByPlayer);
+  }
+
+  const brief = buildNewsletterBrief({
+    leagueName: league.name.trim(),
+    season: league.season,
+    week: targetWeek,
+    isPreseason,
+    recap,
+    transactions: transactionsSummary,
+    lineupEfficiency,
+    draftHighlights,
+  });
+
+  return { season: league.season, targetWeek, isPreseason, brief };
 }

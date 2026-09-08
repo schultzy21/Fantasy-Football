@@ -26,9 +26,10 @@ Three free services work together:
 
 Nothing runs on your own computer once it's deployed. The site fetches fresh data
 from Sleeper's public API on its own, on a timer (every 5 minutes) -- you don't
-have to "run an update." The newsletter is fully automatic too: Vercel runs a
-scheduled job every Tuesday morning (after that week's Monday Night Football game
-has finished) that writes and publishes it -- nobody has to click anything.
+have to "run an update." The newsletter doesn't need an Anthropic API key at all
+by default -- each week you just ask Claude (in any chat, using your normal Claude
+account, no extra billing) to write it, and paste the result into a small form on
+the site. See "Every week" below.
 
 ---
 
@@ -106,42 +107,49 @@ Open http://localhost:3000 in your browser.
 
 ## Every week
 
-**Nothing is required.** The page re-checks Sleeper for fresh data automatically
-(about every 5 minutes) whenever someone loads it. Standings, recaps, power
-rankings, the trend chart, position groups, and predictions update themselves once
-games are played.
+**Nothing is required for the numbers.** The page re-checks Sleeper for fresh data
+automatically (about every 5 minutes) whenever someone loads it. Standings, recaps,
+power rankings, the trend chart, position groups, and predictions update themselves
+once games are played.
 
-The **newsletter publishes itself automatically** every Tuesday morning (once
-`ANTHROPIC_API_KEY` is set) -- nothing to click, nothing to paste. It covers that
-week's matchups, waiver moves, lineup blunders, and real current NFL news pulled in
-via a live web search, all woven into one written article. It only ever generates
-once per week (it checks first, so re-running the schedule doesn't waste API calls
-or overwrite that week's issue).
+### Publishing the newsletter (no API key, no billing)
 
-One optional thing you might still do each week:
+This is the one thing you do by hand each week, and it takes one message to Claude:
 
-### Generate the numbers write-up (only if you added an Anthropic key)
+1. In any Claude chat (Claude.ai, this one, whatever you normally use -- your
+   regular account, no extra cost), say something like: **"Write this week's
+   fantasy football newsletter using
+   `https://<your-site>.vercel.app/api/newsletter-brief` for the data, and search
+   the web for real current NFL news to include."**
+2. Claude will fetch that page (it's a plain-text summary of the week's real
+   matchups, waiver moves, and lineup blunders), search for real news, and hand you
+   back a headline and article.
+3. On the site, open the **Newsletter** tab, scroll to **"Publish this week's
+   issue,"** paste the headline and article in, and click **Publish**. It saves
+   instantly and everyone sees it.
 
-If you've added an `ANTHROPIC_API_KEY`, you'll see a **Generate This Week's
-Write-Up** button near the top of the page. Click it (after that week's games
-finish, ideally) and it writes the recap, power ranking blurbs, position group
-notes, and predictions outlook in one shot -- this is separate from the newsletter,
-which you never need to trigger by hand. It's saved so every visitor sees the same
-version -- click **Regenerate** if you want a fresh take.
+That's it -- no Anthropic API key, no billing setup, nothing else to configure.
+`/api/newsletter-brief` is a public page (no login needed) precisely so Claude can
+fetch it for you when asked.
 
-If you never add a key, you'll instead see a **Copy Brief** button with a clean
-text summary of the week's numbers -- paste that into Claude.ai yourself with a
-prompt like "write this week's recap and power rankings from this data" to get the
-same kind of write-up by hand (the newsletter itself won't be available without a
-key, since it needs live web search).
+### Optional: numbers write-up button (only if you add an Anthropic key)
+
+If you later add an `ANTHROPIC_API_KEY` (see below), a **Generate This Week's
+Write-Up** button appears near the top of the page. Click it and it writes the
+recap, power ranking blurbs, position group notes, and predictions outlook in one
+shot -- separate from the newsletter. Without a key, you'll instead see a **Copy
+Brief** button with a clean text summary -- paste that into Claude yourself the
+same way as the newsletter above.
 
 ---
 
-## Adding an Anthropic API key later
+## Adding an Anthropic API key later (fully optional)
 
-This turns on the automatic AI write-ups (weekly recap narrative, power ranking
-blurbs, position group notes, predictions outlook) and the automatic weekly
-newsletter.
+You do **not** need this for the newsletter -- that works for free by asking
+Claude directly each week (see above). Adding a key only buys you two things: a
+one-click **Generate** button for the numbers write-up instead of copy/pasting,
+and (if you want it) a fully hands-off newsletter that writes and publishes
+itself automatically every Tuesday morning with no message to Claude required.
 
 1. Go to https://console.anthropic.com, sign in, and create an API key (Settings ->
    API Keys -> Create Key).
@@ -202,32 +210,40 @@ push the change to GitHub.
 ## What's in this repo
 
 ```
-app/                       The page, the manual-generate API route, and the
-                            scheduled newsletter route (app/api/cron/newsletter)
-components/                UI pieces for each section of the page
+app/                       The page, the manual-generate API route, the public
+                            newsletter-brief route Claude fetches, and the
+                            optional scheduled newsletter route (needs a key)
+components/                UI pieces for each section of the page, including the
+                            "Publish this week's issue" form
 lib/                       Sleeper API client, all the stats/ranking/projection
                             math, Supabase and Claude clients
 supabase/schema.sql        Run this in the Supabase SQL editor (see step 1 above)
-vercel.json                Declares the Tuesday newsletter schedule to Vercel
-.env.example                Template for the environment variables (copy to
+vercel.json                Declares the (optional, key-only) Tuesday newsletter
+                            schedule to Vercel
+.env.example               Template for the environment variables (copy to
                             .env.local)
 ```
 
 ## Troubleshooting
 
 - **Page loads but sections are empty / say "not enough data yet"**: normal before
-  the draft and before Week 1 finishes -- this league's 2026 season hasn't started
-  as of this writing.
+  the draft and before Week 1 finishes.
 - **"Generate" button gives an error**: the Anthropic key is missing or invalid, or
-  you're out of API credit at console.anthropic.com.
-- **Generated write-ups don't save / newsletter never appears**: the two Supabase
+  you're out of API credit at console.anthropic.com. (This only affects the numbers
+  write-up button -- the newsletter doesn't need this at all, see below.)
+- **Generated write-ups / published newsletter don't save**: the two Supabase
   environment variables are missing from Vercel (or `.env.local` if running
   locally) -- see step 2/local setup above.
-- **Newsletter hasn't shown up yet**: it only publishes after a full week of games
-  has actually happened, on the following Tuesday morning. Before that, and before
-  the season starts, you'll see a "not published yet" message instead -- normal.
-- **Want to trigger the newsletter manually to test it** (instead of waiting for
-  Tuesday): visit `https://<your-site>/api/cron/newsletter` in a browser, or
+- **Publish button on the newsletter form doesn't seem to do anything**: check the
+  browser console for a Supabase error -- most likely `supabase/schema.sql` hasn't
+  been run yet in your project, so the `generated_content` table doesn't exist.
+- **`/api/newsletter-brief` returns an error or empty page**: means Sleeper's API
+  hiccuped or `SLEEPER_LEAGUE_ID` is misconfigured in Vercel -- reload it in a
+  minute, it's read fresh from Sleeper every time.
+- **(Only if you added an Anthropic key) Newsletter hasn't shown up yet**: the
+  automatic version only publishes after a full week of games has happened, on the
+  following Tuesday morning. To trigger it manually instead of waiting: visit
+  `https://<your-site>/api/cron/newsletter` in a browser, or
   `curl -X POST https://<your-site>/api/cron/newsletter` if you set a
-  `CRON_SECRET` (then add `-H "Authorization: Bearer <your-secret>"`). It's safe to
-  run more than once -- it skips itself if that week's issue already exists.
+  `CRON_SECRET` (then add `-H "Authorization: Bearer <your-secret>"`). Safe to run
+  more than once -- it skips itself if that week's issue already exists.

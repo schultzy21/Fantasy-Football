@@ -1,3 +1,5 @@
+import PublishNewsletterForm from "./PublishNewsletterForm";
+
 export default function NewsletterSection({
   leagueName,
   season,
@@ -5,6 +7,7 @@ export default function NewsletterSection({
   headline,
   article,
   claudeConfigured,
+  targetWeek,
 }: {
   leagueName: string;
   season: string;
@@ -12,8 +15,10 @@ export default function NewsletterSection({
   headline: string | null;
   article: string | null;
   claudeConfigured: boolean;
+  targetWeek: number;
 }) {
   const paragraphs = (article ?? "").split(/\n\s*\n/).filter((p) => p.trim().length > 0);
+  const hasCurrentIssue = week === targetWeek && Boolean(article);
 
   return (
     <section id="newsletter" className="view">
@@ -22,15 +27,12 @@ export default function NewsletterSection({
         <h2 className="sec">Weekly Newsletter</h2>
         <p className="lead">
           A written weekly issue -- NFL news, highlights, lowlights, waiver moves, and a few ribs at certain
-          teams. Publishes automatically every Tuesday morning once that week&apos;s Monday Night Football
-          game has wrapped -- nothing to do here.
+          teams.
         </p>
 
         {!article && (
           <p className="muted">
-            {claudeConfigured
-              ? "No issue published yet. The first one lands after this league's first full week of games, next Tuesday morning."
-              : "This deployment doesn't have an ANTHROPIC_API_KEY configured, so the newsletter can't be written automatically -- see the README to add one."}
+            No issue published yet for this week. See below to publish one -- no API key required.
           </p>
         )}
 
@@ -51,6 +53,16 @@ export default function NewsletterSection({
             </div>
             <div className="sign-off">-- 30 --</div>
           </div>
+        )}
+
+        <PublishNewsletterForm season={season} week={targetWeek} hasIssue={hasCurrentIssue} />
+
+        {claudeConfigured && (
+          <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
+            This deployment also has an Anthropic key configured, so a fresh issue publishes itself
+            automatically every Tuesday morning -- publishing by hand above will overwrite that week&apos;s
+            auto-generated issue if you do both.
+          </p>
         )}
       </div>
     </section>
