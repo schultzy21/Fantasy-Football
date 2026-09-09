@@ -326,6 +326,43 @@ tr:last-child td {
   border-color: var(--flag);
 }
 
+/* Medal-style badge for the top 3 standings rows -- gives the highest-
+   traffic table some of the same arcade "score" feel as the rest of the
+   page instead of reading as a plain spreadsheet. */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  font-family: var(--font-display), monospace;
+  font-size: 11px;
+  border: 2px solid var(--line-bright);
+  background: var(--panel2);
+  color: var(--chalk);
+}
+
+.rank-badge.gold {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--gold-ink);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--gold) 70%, transparent);
+}
+
+.rank-badge.silver {
+  border-color: #c9c9d9;
+  background: #c9c9d9;
+  color: #1a1a24;
+  box-shadow: 0 0 8px rgba(201, 201, 217, 0.6);
+}
+
+.rank-badge.bronze {
+  border-color: #c98a4b;
+  background: #c98a4b;
+  color: #2a1806;
+  box-shadow: 0 0 8px rgba(201, 138, 75, 0.6);
+}
+
 .muted {
   color: var(--muted);
 }
@@ -679,19 +716,24 @@ footer.foot {
   }
 }
 
-/* Values here are in the mascot SVG's own small viewBox units (44x24 total),
-   not CSS pixels -- CSS transforms on SVG elements resolve against the
-   local user-space, so these have to stay tiny or the sprite launches
-   itself off the visible stage entirely. */
+/* .mascot-runner sits inside a static outer <g translate(2,8) scale(0.9)>,
+   so these CSS transform values are in that outer group's local user-space
+   -- they get scaled by 0.9 on their way to the viewBox, and the (2,8)
+   base offset is untouched since it lives on the outer group, not here.
+   The defender sits ~26 viewBox units away (translate(28,8) vs translate(2,8)),
+   so the mid-flight peak below is tuned to land right on top of it. */
 @keyframes mascot-hurdle {
   0% {
     transform: translate(0, 0) rotate(0deg);
   }
-  35% {
-    transform: translate(11px, -9px) rotate(-18deg);
+  30% {
+    transform: translate(12px, -8px) rotate(-10deg);
   }
-  60% {
-    transform: translate(20px, -3px) rotate(10deg);
+  55% {
+    transform: translate(29px, -5px) rotate(8deg);
+  }
+  80% {
+    transform: translate(20px, 0) rotate(0deg);
   }
   100% {
     transform: translate(0, 0) rotate(0deg);
@@ -699,8 +741,17 @@ footer.foot {
 }
 
 @media (max-width: 720px) {
+  body {
+    /* gives the mascot's absolute positioning below a containing block
+       that scrolls with the page, instead of floating fixed over content */
+    position: relative;
+  }
+
   .mascot-stage {
-    transform: scale(0.75);
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    transform: scale(0.62);
     transform-origin: bottom left;
   }
 }

@@ -108,20 +108,27 @@ export default function PixelMascot() {
           <Pixels rects={defenderPants} color={PANTS} />
           <Pixels rects={defenderLegs} color={SHOE} />
         </g>
-        {/* runner */}
-        <g className="mascot-runner" transform="translate(2, 8) scale(0.9)">
-          <Pixels rects={runnerHead} color={GOLD} />
-          <Pixels rects={runnerFacemask} color={DARK} />
-          <Pixels rects={runnerJersey} color={JERSEY} />
-          <g className="mascot-legs-a">
-            <Pixels rects={runnerArmsA} color={JERSEY} />
-            <Pixels rects={runnerPants} color={PANTS} />
-            <Pixels rects={runnerLegsA} color={SHOE} />
-          </g>
-          <g className="mascot-legs-b">
-            <Pixels rects={runnerArmsB} color={JERSEY} />
-            <Pixels rects={runnerPants} color={PANTS} />
-            <Pixels rects={runnerLegsB} color={SHOE} />
+        {/* runner: outer group holds the static base position/scale so it
+            never conflicts with the CSS-animated transform on the inner
+            group (an SVG attribute transform and a CSS transform on the
+            SAME element don't compose -- CSS wins outright and clobbers
+            the base translate/scale, so they must live on separate nested
+            groups) */}
+        <g transform="translate(2, 8) scale(0.9)">
+          <g className="mascot-runner">
+            <Pixels rects={runnerHead} color={GOLD} />
+            <Pixels rects={runnerFacemask} color={DARK} />
+            <Pixels rects={runnerJersey} color={JERSEY} />
+            <g className="mascot-legs-a">
+              <Pixels rects={runnerArmsA} color={JERSEY} />
+              <Pixels rects={runnerPants} color={PANTS} />
+              <Pixels rects={runnerLegsA} color={SHOE} />
+            </g>
+            <g className="mascot-legs-b">
+              <Pixels rects={runnerArmsB} color={JERSEY} />
+              <Pixels rects={runnerPants} color={PANTS} />
+              <Pixels rects={runnerLegsB} color={SHOE} />
+            </g>
           </g>
         </g>
       </svg>

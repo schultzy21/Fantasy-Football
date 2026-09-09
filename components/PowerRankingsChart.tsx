@@ -10,18 +10,18 @@ type TeamRef = { rosterId: number; teamName: string };
 // so identity here doesn't rely on color alone -- every line ends in a
 // direct team-name label, which is the accessible fallback.
 const LINE_COLORS = [
-  "#3987e5", // blue
-  "#d95926", // orange
-  "#26b47a", // aqua/green
-  "#c98500", // amber
-  "#d55181", // magenta
-  "#63c46b", // green
-  "#9085e9", // violet
-  "#e66767", // red
-  "#38bdf8", // cyan
-  "#a3e635", // lime
-  "#f472b6", // pink
-  "#fbbf24", // gold
+  "#2ee4ff", // cyan
+  "#ff3d5e", // flag red
+  "#ffd23f", // gold
+  "#2fe08a", // turf green
+  "#b967ff", // arcade purple
+  "#ff8c1a", // orange
+  "#ff5fd2", // hot pink
+  "#baff29", // lime
+  "#4d7aff", // electric blue
+  "#ffea00", // bright yellow
+  "#ff6b6b", // coral
+  "#7fffd4", // aquamarine
 ];
 
 const WIDTH = 900;
@@ -90,15 +90,15 @@ export default function PowerRankingsChart({
           {/* y gridlines + rank labels */}
           {Array.from({ length: plot.n }, (_, i) => i + 1).map((rank) => (
             <g key={rank}>
-              <line x1={PAD_LEFT} x2={WIDTH - PAD_RIGHT} y1={plot.yFor(rank)} y2={plot.yFor(rank)} stroke="#28375c" strokeWidth={1} />
-              <text x={PAD_LEFT - 10} y={plot.yFor(rank) + 4} textAnchor="end" fontSize={11} fill="#8a96b0">
+              <line x1={PAD_LEFT} x2={WIDTH - PAD_RIGHT} y1={plot.yFor(rank)} y2={plot.yFor(rank)} stroke="var(--line)" strokeWidth={1} />
+              <text x={PAD_LEFT - 10} y={plot.yFor(rank) + 4} textAnchor="end" fontSize={13} fill="var(--muted)">
                 {rank}
               </text>
             </g>
           ))}
           {/* x labels */}
           {weekTicks.map((label, i) => (
-            <text key={label + i} x={plot.xFor(i)} y={HEIGHT - PAD_BOTTOM + 20} textAnchor="middle" fontSize={11} fill="#8a96b0">
+            <text key={label + i} x={plot.xFor(i)} y={HEIGHT - PAD_BOTTOM + 20} textAnchor="middle" fontSize={13} fill="var(--muted)">
               {label}
             </text>
           ))}
@@ -150,9 +150,9 @@ export default function PowerRankingsChart({
                 key={el.team.rosterId}
                 x={WIDTH - PAD_RIGHT + 10}
                 y={el.y + 4}
-                fontSize={12}
+                fontSize={13}
                 fontWeight={highlighted === el.team.rosterId ? 800 : 600}
-                fill={isDim ? "#8a96b0" : "#f5f3ec"}
+                fill={isDim ? "var(--muted)" : "var(--chalk)"}
                 opacity={isDim ? 0.5 : 1}
                 style={{ cursor: "pointer" }}
                 onMouseEnter={() => setActive(el.team.rosterId)}

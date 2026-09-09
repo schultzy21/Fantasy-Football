@@ -1,5 +1,7 @@
 import type { Team } from "@/lib/standings";
 
+const RANK_TIER = ["gold", "silver", "bronze"] as const;
+
 export default function StandingsTable({ standings }: { standings: Team[] }) {
   return (
     <table>
@@ -15,7 +17,9 @@ export default function StandingsTable({ standings }: { standings: Team[] }) {
       <tbody>
         {standings.map((t, i) => (
           <tr key={t.rosterId}>
-            <td className="tnum">{i + 1}</td>
+            <td className="tnum">
+              {i < 3 ? <span className={`rank-badge ${RANK_TIER[i]}`}>{i + 1}</span> : i + 1}
+            </td>
             <td>
               <div>{t.teamName}</div>
               <div className="muted" style={{ fontSize: 12 }}>
