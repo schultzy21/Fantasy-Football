@@ -1,14 +1,21 @@
 :root {
-  --ink: #0f1729;
-  --panel: #16213c;
-  --panel2: #1c2a4a;
-  --line: #28375c;
-  --chalk: #f5f3ec;
-  --muted: #8a96b0;
-  --gold: #e8b04b;
-  --turf: #3fb27f;
-  --flag: #e5533c;
-  --radius: 14px;
+  /* Retro 8-bit gridiron palette -- deep purple-navy cabinet, turf green
+     accents, arcade gold/cyan/red LEDs. Deliberately not "just dark mode" --
+     this is meant to read as a game cartridge, not a SaaS dashboard. */
+  --ink: #0d0818;
+  --panel: #1a1030;
+  --panel2: #241a44;
+  --line: #4a3a7a;
+  --line-bright: #7a5fc4;
+  --chalk: #f6f1ff;
+  --muted: #a89bd4;
+  --gold: #ffd23f;
+  --gold-ink: #2a1c00;
+  --turf: #2fe08a;
+  --cyan: #2ee4ff;
+  --flag: #ff3d5e;
+  --radius: 3px;
+  --pixel: 3px; /* base "pixel" unit used for hard borders/shadows */
 }
 
 * {
@@ -23,139 +30,209 @@ body {
 
 body {
   background: var(--ink);
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 1px, transparent 1px, transparent 3px),
+    radial-gradient(ellipse 900px 500px at 50% -10%, rgba(122, 95, 196, 0.25), transparent 60%);
   color: var(--chalk);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body), "Courier New", monospace;
+  font-size: 17px;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
 }
 
+h1,
+h2,
+h3,
+.pixel-font,
+nav.tabs a,
+.btn,
+.eyebrow,
+.weekpill,
+.badge,
+.pill {
+  font-family: var(--font-display), "Courier New", monospace;
+}
+
 a {
-  color: inherit;
+  color: var(--cyan);
+  text-decoration-thickness: 2px;
 }
 
 .wrap {
   max-width: 1080px;
   margin: 0 auto;
   padding: 22px 18px 90px;
+  position: relative;
 }
 
 .tnum {
   font-variant-numeric: tabular-nums;
 }
 
-/* Top bar */
+/* Top bar -- scoreboard header */
 .top {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding-bottom: 18px;
-  border-bottom: 2px solid var(--line);
-  margin-bottom: 10px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: var(--pixel) solid var(--chalk);
+  box-shadow: 6px 6px 0 #000, inset 0 0 0 3px var(--ink);
+  position: relative;
+}
+
+.top::before {
+  /* yard-line ticks along the bottom of the scoreboard */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -9px;
+  height: 6px;
+  background-image: repeating-linear-gradient(90deg, var(--gold) 0 10px, transparent 10px 26px);
+  opacity: 0.9;
 }
 
 .brand h1 {
-  font-size: 30px;
-  line-height: 1.05;
+  font-size: 22px;
+  line-height: 1.4;
   margin: 0;
-  font-weight: 800;
-  letter-spacing: 0.01em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 3px 3px 0 #000;
 }
 
 .brand .sub {
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 6px;
-  letter-spacing: 0.06em;
+  color: var(--cyan);
+  font-size: 11px;
+  margin-top: 10px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  font-family: var(--font-display), monospace;
 }
 
 .weekpill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  background: #000;
+  border: 2px solid var(--turf);
   padding: 8px 14px;
-  font-size: 13px;
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--turf);
+  text-shadow: 0 0 6px currentColor;
 }
 
 .weekpill b {
   color: var(--gold);
+  text-shadow: 0 0 6px currentColor;
 }
 
-/* Sticky in-page nav */
+/* Sticky in-page nav -- looks like arcade cabinet buttons */
 nav.tabs {
   position: sticky;
   top: 0;
   z-index: 5;
   display: flex;
-  gap: 4px;
+  gap: 6px;
   overflow-x: auto;
-  margin: 0 0 22px;
-  padding: 10px 0;
+  margin: 0 0 26px;
+  padding: 12px 4px;
   background: var(--ink);
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--pixel) solid var(--line);
   scrollbar-width: thin;
 }
 
 nav.tabs a {
   white-space: nowrap;
   text-decoration: none;
-  color: var(--muted);
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  color: var(--chalk);
+  background: var(--panel2);
+  padding: 9px 12px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  border-radius: 8px;
+  border: 2px solid var(--line);
+  box-shadow: 3px 3px 0 #000;
+  transition: none;
 }
 
 nav.tabs a:hover {
-  color: var(--chalk);
-  background: var(--panel);
+  color: var(--ink);
+  background: var(--cyan);
+  border-color: var(--cyan);
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+nav.tabs a:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 #000;
 }
 
 section.view {
-  scroll-margin-top: 60px;
+  scroll-margin-top: 70px;
   margin-bottom: 34px;
 }
 
 .card {
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: var(--pixel) solid var(--chalk);
+  box-shadow: 6px 6px 0 #000, inset 0 0 0 3px var(--panel2);
   border-radius: var(--radius);
   padding: 18px;
+  position: relative;
 }
 
 .card + .card {
-  margin-top: 14px;
+  margin-top: 18px;
+}
+
+/* pixel-notch corners, NES dialog-box style */
+.card::before,
+.card::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--gold);
+  top: -3px;
+}
+.card::before {
+  left: -3px;
+}
+.card::after {
+  right: -3px;
 }
 
 .eyebrow {
-  color: var(--gold);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  color: var(--cyan);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  text-shadow: 0 0 6px rgba(46, 228, 255, 0.5);
 }
 
 h2.sec {
-  font-size: 20px;
-  margin: 0 0 4px;
-  font-weight: 800;
+  font-size: 17px;
+  margin: 0 0 10px;
+  font-weight: 400;
   letter-spacing: 0.01em;
   text-transform: uppercase;
+  color: var(--chalk);
 }
 
 .lead {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 15px;
   margin: 0 0 16px;
   max-width: 68ch;
 }
@@ -163,22 +240,25 @@ h2.sec {
 table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 16px;
 }
 
 th,
 td {
   text-align: left;
   padding: 10px 10px;
-  border-bottom: 1px solid var(--line);
-  font-size: 14px;
+  border-bottom: 2px dashed var(--line);
+  font-size: 16px;
 }
 
 th {
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  color: var(--gold);
+  font-size: 10px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 400;
+  font-family: var(--font-display), monospace;
+  border-bottom: 2px solid var(--line-bright);
 }
 
 td.num,
@@ -194,49 +274,56 @@ tr:last-child td {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 26px;
-  height: 26px;
+  min-width: 28px;
+  height: 28px;
   padding: 0 6px;
-  border-radius: 8px;
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  font-weight: 800;
+  background: var(--ink);
+  border: 2px solid var(--gold);
+  font-weight: 400;
   font-size: 12px;
   color: var(--gold);
 }
 
 .pill {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  font-size: 10px;
+  font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  border: 2px solid;
+  background: #000;
+}
+
+.pill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
 }
 
 .pill.in {
-  background: rgba(63, 178, 127, 0.15);
   color: var(--turf);
-  border: 1px solid rgba(63, 178, 127, 0.4);
+  border-color: var(--turf);
 }
 
 .pill.bubble {
-  background: rgba(232, 176, 75, 0.15);
   color: var(--gold);
-  border: 1px solid rgba(232, 176, 75, 0.4);
+  border-color: var(--gold);
 }
 
 .pill.out {
-  background: rgba(138, 150, 176, 0.12);
   color: var(--muted);
-  border: 1px solid var(--line);
+  border-color: var(--line);
 }
 
 .pill.flag {
-  background: rgba(229, 83, 60, 0.15);
   color: var(--flag);
-  border: 1px solid rgba(229, 83, 60, 0.4);
+  border-color: var(--flag);
 }
 
 .muted {
@@ -246,7 +333,7 @@ tr:last-child td {
 .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 16px;
 }
 
 @media (max-width: 700px) {
@@ -261,7 +348,7 @@ tr:last-child td {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 2px dashed var(--line);
 }
 
 .matchup:last-child {
@@ -274,8 +361,12 @@ tr:last-child td {
 }
 
 .matchup .side.win {
-  color: var(--chalk);
+  color: var(--gold);
   font-weight: 700;
+}
+
+.matchup .side.win::before {
+  content: "\2605 ";
 }
 
 .matchup .side.lose {
@@ -283,80 +374,100 @@ tr:last-child td {
 }
 
 .matchup .score {
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-}
-
-.callout {
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-top: 10px;
+  color: var(--chalk);
+  font-family: var(--font-display), monospace;
   font-size: 14px;
 }
 
+.callout {
+  border: 2px solid;
+  padding: 12px 14px;
+  margin-top: 12px;
+  font-size: 15px;
+  background: #000;
+}
+
 .callout.low {
-  background: rgba(229, 83, 60, 0.12);
-  border: 1px solid rgba(229, 83, 60, 0.35);
+  border-color: var(--flag);
+  color: var(--chalk);
+  box-shadow: 0 0 14px rgba(255, 61, 94, 0.25) inset;
 }
 
 .callout.high {
-  background: rgba(232, 176, 75, 0.12);
-  border: 1px solid rgba(232, 176, 75, 0.35);
+  border-color: var(--gold);
+  color: var(--chalk);
+  box-shadow: 0 0 14px rgba(255, 210, 63, 0.25) inset;
 }
 
 textarea,
 input[type="text"] {
   width: 100%;
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  color: var(--chalk);
+  background: #000;
+  border: 2px solid var(--line);
+  border-radius: 0;
+  color: var(--turf);
   padding: 10px 12px;
-  font-family: inherit;
-  font-size: 14px;
+  font-family: var(--font-body), monospace;
+  font-size: 16px;
   outline: none;
 }
 
 textarea:focus,
 input[type="text"]:focus {
-  border-color: var(--gold);
+  border-color: var(--cyan);
 }
 
 button {
   cursor: pointer;
-  font-family: inherit;
 }
 
 .btn {
   background: var(--panel2);
   color: var(--chalk);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 9px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  border: 2px solid var(--chalk);
+  border-radius: 0;
+  padding: 10px 16px;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  box-shadow: 4px 4px 0 #000;
+  transition: none;
 }
 
-.btn:hover {
-  border-color: var(--gold);
+.btn:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--cyan);
+  border-color: var(--cyan);
+}
+
+.btn:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 #000;
 }
 
 .btn.gold {
   background: var(--gold);
-  color: #20160a;
+  color: var(--gold-ink);
   border-color: var(--gold);
 }
 
+.btn.gold:hover:not(:disabled) {
+  background: var(--turf);
+  border-color: var(--turf);
+  color: #04210f;
+}
+
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
 }
 
 .quote {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 14px;
+  padding: 12px 0;
+  border-bottom: 2px dashed var(--line);
+  font-size: 15px;
 }
 
 .quote:last-child {
@@ -366,23 +477,24 @@ button {
 .quote .who {
   color: var(--muted);
   font-size: 12px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 pre.brief {
   white-space: pre-wrap;
   word-break: break-word;
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  background: #000;
+  border: 2px solid var(--line);
   padding: 14px;
   font-size: 13px;
   max-height: 420px;
   overflow-y: auto;
+  color: var(--turf);
+  font-family: var(--font-body), monospace;
 }
 
-/* Newsletter -- classic newspaper look, deliberately distinct from the rest
-   of the (dark) site: cream paper, black ink, serif type. */
+/* Newsletter -- classic newspaper look, deliberately distinct from the
+   8-bit theme elsewhere: cream paper, black ink, serif type. */
 .newspaper {
   background: #f4ecd8;
   color: #1a1a1a;
@@ -464,7 +576,131 @@ pre.brief {
 footer.foot {
   margin-top: 40px;
   padding-top: 16px;
-  border-top: 1px solid var(--line);
+  border-top: var(--pixel) solid var(--line);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
+  font-family: var(--font-display), monospace;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+/* CRT scanline overlay -- fixed, subtle, whole-viewport */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.16) 0px,
+    rgba(0, 0, 0, 0.16) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+/* ---- Mascot: idle-running pixel sprite that hurdles a defender on click ---- */
+.mascot-stage {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  width: 132px;
+  height: 72px;
+  z-index: 40;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 2px solid var(--line-bright);
+  box-shadow: 4px 4px 0 #000;
+}
+
+.mascot-stage svg {
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+  overflow: visible;
+}
+
+.mascot-runner {
+  animation: mascot-bob 0.5s steps(2) infinite;
+}
+
+.mascot-legs-a {
+  opacity: 1;
+  animation: mascot-legs-a-toggle 0.5s steps(1, end) infinite;
+}
+.mascot-legs-b {
+  opacity: 0;
+  animation: mascot-legs-b-toggle 0.5s steps(1, end) infinite;
+}
+@keyframes mascot-legs-a-toggle {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes mascot-legs-b-toggle {
+  0%,
+  49% {
+    opacity: 0;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+
+.mascot-stage.jumping .mascot-legs-a {
+  animation: none;
+  opacity: 1;
+}
+.mascot-stage.jumping .mascot-legs-b {
+  animation: none;
+  opacity: 0;
+}
+
+.mascot-stage.jumping .mascot-runner {
+  animation: mascot-hurdle 0.7s cubic-bezier(0.3, 0, 0.2, 1) 1;
+}
+
+@keyframes mascot-bob {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* Values here are in the mascot SVG's own small viewBox units (44x24 total),
+   not CSS pixels -- CSS transforms on SVG elements resolve against the
+   local user-space, so these have to stay tiny or the sprite launches
+   itself off the visible stage entirely. */
+@keyframes mascot-hurdle {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  35% {
+    transform: translate(11px, -9px) rotate(-18deg);
+  }
+  60% {
+    transform: translate(20px, -3px) rotate(10deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .mascot-stage {
+    transform: scale(0.75);
+    transform-origin: bottom left;
+  }
 }
