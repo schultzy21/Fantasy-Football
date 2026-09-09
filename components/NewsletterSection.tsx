@@ -21,7 +21,7 @@ export default function NewsletterSection({
   const hasCurrentIssue = week === targetWeek && Boolean(article);
 
   return (
-    <section id="newsletter" className="view">
+    <section id="newsletter" className="view" data-yard="GOAL">
       <div className="card">
         <div className="eyebrow">The League Newsletter</div>
         <h2 className="sec">Weekly Newsletter</h2>

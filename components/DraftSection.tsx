@@ -6,7 +6,7 @@ export default function DraftSection({
   draftPicks: (SleeperDraftPick & { playerName: string })[];
 }) {
   return (
-    <section id="draft" className="view">
+    <section id="draft" className="view" data-yard="OPP 10">
       <div className="card">
         <div className="eyebrow">Draft Results</div>
         <h2 className="sec">The Draft</h2>

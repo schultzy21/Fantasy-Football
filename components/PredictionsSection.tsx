@@ -10,7 +10,7 @@ export default function PredictionsSection({
   isProjected: boolean;
 }) {
   return (
-    <section id="predictions" className="view">
+    <section id="predictions" className="view" data-yard="OPP 20">
       <div className="card">
         <div className="eyebrow">{isProjected ? "Preseason Projection" : "Refreshed Every Week"}</div>
         <h2 className="sec">Predictions Outlook</h2>

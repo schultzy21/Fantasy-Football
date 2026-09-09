@@ -10,7 +10,7 @@ export default function PositionsSection({
   blurbs: Record<string, string> | null;
 }) {
   return (
-    <section id="positions" className="view">
+    <section id="positions" className="view" data-yard="OPP 30">
       <div className="card">
         <div className="eyebrow">{isProjected ? "Preseason Projection" : "Position Insights"}</div>
         <h2 className="sec">Best Position Groups</h2>

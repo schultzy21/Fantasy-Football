@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Press_Start_2P, VT323 } from "next/font/google";
+import FieldMascot from "@/components/FieldMascot";
 import "./globals.css";
 
 const pixelDisplay = Press_Start_2P({
@@ -24,7 +25,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${pixelDisplay.variable} ${pixelBody.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <FieldMascot />
+      </body>
     </html>
   );
 }

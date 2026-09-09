@@ -8,7 +8,7 @@ export default function WeeklyRecapSection({
   narrative: string | null;
 }) {
   return (
-    <section id="recap" className="view">
+    <section id="recap" className="view" data-yard="50">
       <div className="card">
         <div className="eyebrow">{recap ? `Week ${recap.week} Recap` : "Weekly Recap"}</div>
         <h2 className="sec">Weekly Recap</h2>

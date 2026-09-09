@@ -9,7 +9,7 @@ export default function HistorySection({
   records: LeagueRecords;
 }) {
   return (
-    <section id="history" className="view">
+    <section id="history" className="view" data-yard="OWN 40">
       <div className="card">
         <div className="eyebrow">League History</div>
         <h2 className="sec">Past Champions &amp; Records</h2>

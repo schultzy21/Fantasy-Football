@@ -14,7 +14,7 @@ export default function PowerRankingsSection({
   history: RankingsHistoryPoint[];
 }) {
   return (
-    <section id="power" className="view">
+    <section id="power" className="view" data-yard="OPP 40">
       <div className="card">
         <div className="eyebrow">{isProjected ? "Preseason Projection" : "Weekly Power Rankings"}</div>
         <h2 className="sec">Power Rankings</h2>
