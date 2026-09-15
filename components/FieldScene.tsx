@@ -4,10 +4,12 @@ type Rect = [number, number, number, number, string];
 
 const PALETTE: Record<string, string> = {
   G: "#ffd23f", // helmet
+  Y: "#ffe993", // helmet highlight (gloss)
   g: "#caa02e", // helmet shadow
   K: "#141414", // facemask
   S: "#e8b382", // skin
   J: "#2ee4ff", // jersey
+  C: "#9ef4ff", // jersey highlight
   j: "#1596ad", // jersey shadow
   W: "#f6f1ff", // pants / trim
   w: "#c9c2d9", // pants shadow
@@ -22,6 +24,7 @@ const DEFENDER_PALETTE: Record<string, string> = {
   K: "#141414", // facemask
   S: "#e8b382", // skin
   J: "#ff3d5e", // jersey (flag red)
+  i: "#ff8fa3", // jersey highlight
   j: "#c22344", // jersey shadow
   P: "#8f86a6", // pants
   B: "#141414", // cleats
@@ -32,14 +35,14 @@ const DEFENDER_PALETTE: Record<string, string> = {
 // pixel) rather than long hand-written rect lists. Shared by the ball
 // carrier and both blockers -- same team, same build.
 const BODY_ROWS = [
-  "......GGGG......",
-  "....GGGGGGGG....",
+  "......YGGG......",
+  "....YYGGGGGG....",
   "....gGGGGGGg....",
   "....GGGGGGgSKK..",
   "....GGGGGgSSKK..",
   ".....gggSSKKK...",
   "......SSWWWW....",
-  "...JJJJJJJJJJJ..",
+  "...CCJJJJJJJJJ..",
   "...jjJJJJJJJJJ..",
   "...jjJJJJWJJJJ..",
   "...jjJJJJWJJJJ..",
@@ -92,7 +95,7 @@ const DEFENDER_ROWS = [
   "..KKSShHHHHH....",
   "...KKKSShhh.....",
   "....JJJJSS......",
-  "..JJJJJJJJJJJ...",
+  "..iiJJJJJJJJJ...",
   "..JJJJJJJJJjj...",
   "..JJJJJJJJJjj...",
   "..JJJJJJJJJjj...",
@@ -100,6 +103,10 @@ const DEFENDER_ROWS = [
   "...JJJJJJJjj....",
   "....PPPPPPPP....",
   "..PPPPPPPPPPPP..",
+  "...PPPPPPPPPP...",
+  "...PPPPPPPPPP...",
+  "...PPPP..PPPP...",
+  "...PPPP..PPPP...",
 ];
 // same stride shape as the offense, recolored -- the defender is chasing,
 // not braced, so it needs running legs rather than a static wide stance.
