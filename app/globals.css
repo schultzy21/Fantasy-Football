@@ -66,7 +66,7 @@ a {
 .wrap {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 22px 18px 90px;
+  padding: 22px 18px 128px;
   position: relative;
 }
 
@@ -672,56 +672,91 @@ footer.foot {
   text-align: center;
 }
 
-/* ---- Mascot: idle-running pixel sprite that stiff-arms a defender on click.
-   Runner and defender are separate flex children of one bordered stage box
-   (not two elements sharing an SVG coordinate space), so the "hurdle" is a
-   short local hop-and-rotate rather than a cross-viewport sprint. ---- */
-.mascot-stage {
+/* ---- Field scene: a running play that never ends. A dedicated sideline
+   strip pinned to the bottom of the viewport, always on screen (never
+   hidden behind cards the way a true background layer would be) -- a ball
+   carrier with two blockers and a trailing defender run left-to-right on
+   an endless loop, re-entering from the left every time they exit right.
+   .wrap reserves bottom padding so real content never sits under it. ---- */
+.field-scene {
   position: fixed;
-  left: 14px;
+  left: 0;
+  right: 0;
   bottom: 0;
-  z-index: 40;
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding: 10px 14px 0;
+  height: 92px;
+  z-index: 45;
   pointer-events: none;
-  background: linear-gradient(180deg, var(--panel2), var(--panel));
-  border: 2px solid var(--line-bright);
-  border-bottom: none;
-  box-shadow: 4px 4px 0 #000;
+  overflow: hidden;
+  background-color: var(--turf-a, #0e5a33);
+  background-image: repeating-linear-gradient(90deg, var(--turf-a, #0e5a33) 0 60px, var(--turf-b, #1b7a45) 60px 120px);
+  border-top: var(--pixel) solid var(--chalk);
+  box-shadow: 0 -4px 0 #000, 0 -8px 16px rgba(0, 0, 0, 0.4);
 }
 
-.mascot-stage svg {
+.field-scene::before {
+  /* yard-line hash ticks along the top edge of the strip */
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background-image: repeating-linear-gradient(90deg, var(--chalk) 0 3px, transparent 3px 40px);
+  opacity: 0.85;
+}
+
+.field-formation {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 30px;
+  animation: field-run-loop 13s linear infinite;
+}
+
+.field-char svg {
+  display: block;
   shape-rendering: crispEdges;
   image-rendering: pixelated;
   overflow: visible;
-  display: block;
 }
 
-.mascot-runner-dock svg {
-  width: 78px;
+.field-runner svg {
+  width: 70px;
   height: auto;
 }
 
-.mascot-defender-dock svg {
+.field-blocker svg,
+.field-defender svg {
   width: 58px;
   height: auto;
 }
 
-.mascot-runner {
-  animation: mascot-bob 0.5s steps(2) infinite;
+@keyframes field-run-loop {
+  0% {
+    transform: translateX(-26vw);
+  }
+  100% {
+    transform: translateX(126vw);
+  }
 }
 
-.mascot-legs-a {
+/* per-character run cycle (leg swap + bob) -- shared by every figure in the
+   formation, each with its own animation-delay so they don't move in
+   lockstep. */
+.fc-run-cycle {
+  animation: fc-bob 0.45s steps(2) infinite;
+}
+.fc-legs-a {
   opacity: 1;
-  animation: mascot-legs-a-toggle 0.5s steps(1, end) infinite;
+  animation: fc-legs-a-toggle 0.45s steps(1, end) infinite;
 }
-.mascot-legs-b {
+.fc-legs-b {
   opacity: 0;
-  animation: mascot-legs-b-toggle 0.5s steps(1, end) infinite;
+  animation: fc-legs-b-toggle 0.45s steps(1, end) infinite;
 }
-@keyframes mascot-legs-a-toggle {
+@keyframes fc-legs-a-toggle {
   0%,
   49% {
     opacity: 1;
@@ -731,7 +766,7 @@ footer.foot {
     opacity: 0;
   }
 }
-@keyframes mascot-legs-b-toggle {
+@keyframes fc-legs-b-toggle {
   0%,
   49% {
     opacity: 0;
@@ -741,21 +776,7 @@ footer.foot {
     opacity: 1;
   }
 }
-
-.mascot-stage.jumping .mascot-legs-a {
-  animation: none;
-  opacity: 1;
-}
-.mascot-stage.jumping .mascot-legs-b {
-  animation: none;
-  opacity: 0;
-}
-
-.mascot-stage.jumping .mascot-runner {
-  animation: mascot-hurdle 0.7s cubic-bezier(0.3, 0, 0.2, 1) 1;
-}
-
-@keyframes mascot-bob {
+@keyframes fc-bob {
   0% {
     transform: translateY(0);
   }
@@ -767,72 +788,31 @@ footer.foot {
   }
 }
 
-@keyframes mascot-hurdle {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  30% {
-    transform: translate(12px, -8px) rotate(-10deg);
-  }
-  55% {
-    transform: translate(29px, -5px) rotate(8deg);
-  }
-  80% {
-    transform: translate(20px, 0) rotate(0deg);
-  }
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-}
-
-.mascot-defender {
-  animation: mascot-defender-idle 1.1s ease-in-out infinite;
-}
-@keyframes mascot-defender-idle {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-.mascot-stage.jumping .mascot-defender {
-  animation: mascot-defender-beaten 0.7s cubic-bezier(0.3, 0, 0.3, 1) 1;
-}
-@keyframes mascot-defender-beaten {
-  0%,
-  35% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 1;
-  }
-  55% {
-    transform: translate(-6px, -5px) rotate(-16deg);
-    opacity: 1;
-  }
-  80% {
-    transform: translate(-14px, 7px) rotate(-58deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-16px, 9px) rotate(-70deg);
-    opacity: 0;
+@media (prefers-reduced-motion: reduce) {
+  .field-formation,
+  .fc-run-cycle,
+  .fc-legs-a,
+  .fc-legs-b {
+    animation: none !important;
   }
 }
 
 @media (max-width: 720px) {
-  body {
-    /* gives the mascot's absolute positioning below a containing block
-       that scrolls with the page, instead of floating fixed over content */
-    position: relative;
+  .field-scene {
+    height: 66px;
   }
-
-  .mascot-stage {
-    position: absolute;
-    left: 10px;
-    bottom: 10px;
-    transform: scale(0.68);
-    transform-origin: bottom left;
+  .field-runner svg {
+    width: 50px;
+  }
+  .field-blocker svg,
+  .field-defender svg {
+    width: 42px;
+  }
+  .field-formation {
+    bottom: 4px;
+    gap: 20px;
+  }
+  .wrap {
+    padding-bottom: 96px;
   }
 }

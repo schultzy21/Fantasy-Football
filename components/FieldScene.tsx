@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 type Rect = [number, number, number, number, string];
 
 const PALETTE: Record<string, string> = {
@@ -19,7 +17,7 @@ const PALETTE: Record<string, string> = {
 };
 
 const DEFENDER_PALETTE: Record<string, string> = {
-  H: "#f6f1ff", // helmet (rival white, vs. the runner's gold)
+  H: "#f6f1ff", // helmet (rival white, vs. the offense's gold)
   h: "#c9c2d9", // helmet shadow
   K: "#141414", // facemask
   S: "#e8b382", // skin
@@ -31,7 +29,8 @@ const DEFENDER_PALETTE: Record<string, string> = {
 
 // Higher-detail pixel sprite: helmet w/ facemask + skin, shaded jersey,
 // shaded pants, cleats. Authored as 16-wide row strings (one char per
-// pixel) rather than long hand-written rect lists.
+// pixel) rather than long hand-written rect lists. Shared by the ball
+// carrier and both blockers -- same team, same build.
 const BODY_ROWS = [
   "......GGGG......",
   "....GGGGGGGG....",
@@ -65,11 +64,8 @@ const LEGS_A_ROWS = [
 // as forward vs. trailing, so the run cycle doesn't need a second hand-authored pose.
 const LEGS_B_ROWS = LEGS_A_ROWS.map((row) => row.split("").reverse().join(""));
 
-// arms are static (not part of the leg-swap cycle): one stiff-armed out
-// front to fend off the defender, the other tucked around the ball. The
-// stiff arm needs real reach beyond the jersey silhouette (cols 0-15), so
-// it extends into extra canvas width the body art doesn't use. Colors here
-// are PALETTE keys, resolved below.
+// the ball carrier's stiff-arm + football -- reaches beyond the jersey
+// silhouette (cols 0-15), so it extends into extra canvas width.
 const STIFF_ARM_AND_BALL_KEYED: Rect[] = [
   [13, 7, 2, 2, "J"],
   [15, 8, 3, 2, "J"],
@@ -78,6 +74,14 @@ const STIFF_ARM_AND_BALL_KEYED: Rect[] = [
   [2, 11, 2, 2, "J"],
   [0, 11, 3, 2, "F"],
   [1, 12, 1, 1, "W"],
+];
+
+// blockers run with both arms pumping instead of one arm on a ball.
+const BLOCKER_ARMS_KEYED: Rect[] = [
+  [1, 9, 2, 4, "J"],
+  [1, 13, 2, 1, "B"],
+  [13, 9, 2, 4, "J"],
+  [13, 13, 2, 1, "B"],
 ];
 
 const DEFENDER_ROWS = [
@@ -96,12 +100,13 @@ const DEFENDER_ROWS = [
   "...JJJJJJJjj....",
   "....PPPPPPPP....",
   "..PPPPPPPPPPPP..",
-  ".PPPPP....PPPPP.",
-  ".BBBBB....BBBBB.",
 ];
+// same stride shape as the offense, recolored -- the defender is chasing,
+// not braced, so it needs running legs rather than a static wide stance.
+const DEFENDER_LEGS_A_ROWS = LEGS_A_ROWS.map((row) => row.replace(/W/g, "P"));
+const DEFENDER_LEGS_B_ROWS = LEGS_B_ROWS.map((row) => row.replace(/W/g, "P"));
 
-// arms reach forward (toward low-x) in a tackle brace. Colors are
-// DEFENDER_PALETTE keys, resolved below.
+// arms reach forward (toward low-x, into the play) in a tackle reach.
 const DEFENDER_ARMS_KEYED: Rect[] = [
   [0, 7, 2, 2, "S"],
   [0, 8, 3, 2, "J"],
@@ -135,7 +140,10 @@ const BODY_RECTS = rectsFromRows(BODY_ROWS, PALETTE, 0);
 const LEGS_A_RECTS = rectsFromRows(LEGS_A_ROWS, PALETTE, 19);
 const LEGS_B_RECTS = rectsFromRows(LEGS_B_ROWS, PALETTE, 19);
 const STIFF_ARM_AND_BALL = resolveRects(STIFF_ARM_AND_BALL_KEYED, PALETTE);
+const BLOCKER_ARMS = resolveRects(BLOCKER_ARMS_KEYED, PALETTE);
 const DEFENDER_BODY_RECTS = rectsFromRows(DEFENDER_ROWS, DEFENDER_PALETTE, 0);
+const DEFENDER_LEGS_A_RECTS = rectsFromRows(DEFENDER_LEGS_A_ROWS, DEFENDER_PALETTE, 19);
+const DEFENDER_LEGS_B_RECTS = rectsFromRows(DEFENDER_LEGS_B_ROWS, DEFENDER_PALETTE, 19);
 const DEFENDER_ARMS = resolveRects(DEFENDER_ARMS_KEYED, DEFENDER_PALETTE);
 
 function Pixels({ rects }: { rects: Rect[] }) {
@@ -148,46 +156,75 @@ function Pixels({ rects }: { rects: Rect[] }) {
   );
 }
 
-export default function FieldMascot() {
-  const [jumping, setJumping] = useState(false);
-
-  useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-    function onClick() {
-      setJumping(true);
-      clearTimeout(timeout);
-      timeout = setTimeout(() => setJumping(false), 850);
-    }
-    window.addEventListener("click", onClick);
-    return () => {
-      window.removeEventListener("click", onClick);
-      clearTimeout(timeout);
-    };
-  }, []);
-
+function Runner({ delay }: { delay: string }) {
   return (
-    <div className={`mascot-stage${jumping ? " jumping" : ""}`} aria-hidden="true">
-      <div className="mascot-runner-dock">
-        <svg viewBox="0 0 20 24">
-          <g className="mascot-runner">
-            <Pixels rects={BODY_RECTS} />
-            <Pixels rects={STIFF_ARM_AND_BALL} />
-            <g className="mascot-legs-a">
-              <Pixels rects={LEGS_A_RECTS} />
-            </g>
-            <g className="mascot-legs-b">
-              <Pixels rects={LEGS_B_RECTS} />
-            </g>
+    <div className="field-char field-runner">
+      <svg viewBox="0 0 20 24">
+        <g className="fc-run-cycle" style={{ animationDelay: delay }}>
+          <Pixels rects={BODY_RECTS} />
+          <Pixels rects={STIFF_ARM_AND_BALL} />
+          <g className="fc-legs-a" style={{ animationDelay: delay }}>
+            <Pixels rects={LEGS_A_RECTS} />
           </g>
-        </svg>
-      </div>
-      <div className="mascot-defender-dock">
-        <svg viewBox="0 0 16 18">
-          <g className="mascot-defender">
-            <Pixels rects={DEFENDER_BODY_RECTS} />
-            <Pixels rects={DEFENDER_ARMS} />
+          <g className="fc-legs-b" style={{ animationDelay: delay }}>
+            <Pixels rects={LEGS_B_RECTS} />
           </g>
-        </svg>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function Blocker({ delay }: { delay: string }) {
+  return (
+    <div className="field-char field-blocker">
+      <svg viewBox="0 0 20 24">
+        <g className="fc-run-cycle" style={{ animationDelay: delay }}>
+          <Pixels rects={BODY_RECTS} />
+          <Pixels rects={BLOCKER_ARMS} />
+          <g className="fc-legs-a" style={{ animationDelay: delay }}>
+            <Pixels rects={LEGS_A_RECTS} />
+          </g>
+          <g className="fc-legs-b" style={{ animationDelay: delay }}>
+            <Pixels rects={LEGS_B_RECTS} />
+          </g>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function Defender({ delay }: { delay: string }) {
+  return (
+    <div className="field-char field-defender">
+      <svg viewBox="0 0 16 24">
+        <g className="fc-run-cycle" style={{ animationDelay: delay }}>
+          <Pixels rects={DEFENDER_BODY_RECTS} />
+          <Pixels rects={DEFENDER_ARMS} />
+          <g className="fc-legs-a" style={{ animationDelay: delay }}>
+            <Pixels rects={DEFENDER_LEGS_A_RECTS} />
+          </g>
+          <g className="fc-legs-b" style={{ animationDelay: delay }}>
+            <Pixels rects={DEFENDER_LEGS_B_RECTS} />
+          </g>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+// An endless running play, always moving behind the real page: two
+// blockers escort the ball carrier, one defender trails, chasing but never
+// catching up -- the formation just loops off the right edge and re-enters
+// from the left, forever, never scoring.
+export default function FieldScene() {
+  return (
+    <div className="field-scene" aria-hidden="true">
+      <div className="field-formation">
+        <Defender delay="0.05s" />
+        <Blocker delay="0.18s" />
+        <Runner delay="0s" />
+        <Blocker delay="0.27s" />
       </div>
     </div>
   );
