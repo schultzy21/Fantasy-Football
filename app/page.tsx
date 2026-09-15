@@ -1,6 +1,4 @@
-import BriefBox from "@/components/BriefBox";
 import DraftSection from "@/components/DraftSection";
-import GenerateButton from "@/components/GenerateButton";
 import HistorySection from "@/components/HistorySection";
 import NewsletterSection from "@/components/NewsletterSection";
 import PositionsSection from "@/components/PositionsSection";
@@ -91,21 +89,6 @@ export default async function Home() {
             </p>
           )}
           <StandingsTable standings={data.standings} />
-        </div>
-
-        <div className="card">
-          <div className="eyebrow">Write-Up</div>
-          <h2 className="sec">This Week&apos;s Numbers</h2>
-          {claudeConfigured() ? (
-            <GenerateButton hasGenerated={Boolean(generated)} />
-          ) : (
-            <BriefBox brief={data.brief} />
-          )}
-          {generated?.generated_at && (
-            <p className="muted" style={{ marginTop: 10, fontSize: 12 }}>
-              Last generated {new Date(generated.generated_at).toLocaleString()}
-            </p>
-          )}
         </div>
       </section>
 
