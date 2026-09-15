@@ -20,12 +20,7 @@ export default function StandingsTable({ standings }: { standings: Team[] }) {
             <td className="tnum">
               {i < 3 ? <span className={`rank-badge ${RANK_TIER[i]}`}>{i + 1}</span> : i + 1}
             </td>
-            <td>
-              <div>{t.teamName}</div>
-              <div className="muted" style={{ fontSize: 12 }}>
-                {t.ownerName}
-              </div>
-            </td>
+            <td>{t.teamName}</td>
             <td className="num tnum">
               {t.wins}-{t.losses}
               {t.ties ? `-${t.ties}` : ""}

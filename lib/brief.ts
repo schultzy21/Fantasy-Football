@@ -49,7 +49,7 @@ export function buildBrief(input: {
   lines.push("STANDINGS (record, points for, points against):");
   standings.forEach((t, i) => {
     lines.push(
-      `${i + 1}. ${t.teamName} (${t.ownerName}) -- ${t.wins}-${t.losses}${t.ties ? `-${t.ties}` : ""}, ` +
+      `${i + 1}. ${t.teamName} -- ${t.wins}-${t.losses}${t.ties ? `-${t.ties}` : ""}, ` +
         `${t.fpts.toFixed(1)} PF, ${t.fptsAgainst.toFixed(1)} PA. [rosterId=${t.rosterId}]`,
     );
   });

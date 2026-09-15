@@ -15,6 +15,16 @@ export type Team = {
   starters: string[];
 };
 
+// A couple of owners go by a different name than their Sleeper username
+// everywhere on the site.
+const DISPLAY_NAME_OVERRIDES: Record<string, string> = {
+  bootymcnutt: "ScottieKoehner",
+};
+
+function displayNameFor(username: string): string {
+  return DISPLAY_NAME_OVERRIDES[username.toLowerCase()] ?? username;
+}
+
 export function buildTeams(
   league: SleeperLeague,
   users: SleeperUser[],
@@ -24,16 +34,17 @@ export function buildTeams(
 
   return rosters.map((r) => {
     const user = r.owner_id ? usersById.get(r.owner_id) : undefined;
-    const teamName =
-      user?.metadata?.team_name?.trim() || user?.display_name || `Roster ${r.roster_id}`;
+    // Every name on the site is the owner's username, not their custom
+    // Sleeper team name -- easier to tell who's who at a glance.
+    const displayName = displayNameFor(user?.display_name || `Roster ${r.roster_id}`);
     const fptsDec = (r.settings.fpts_decimal ?? 0) / 100;
     const fptsAgainstDec = (r.settings.fpts_against_decimal ?? 0) / 100;
 
     return {
       rosterId: r.roster_id,
       ownerId: r.owner_id,
-      teamName,
-      ownerName: user?.display_name ?? "Unknown",
+      teamName: displayName,
+      ownerName: displayName,
       avatar: user?.avatar ?? null,
       wins: r.settings.wins ?? 0,
       losses: r.settings.losses ?? 0,
