@@ -220,19 +220,33 @@ function Defender({ delay }: { delay: string }) {
   );
 }
 
-// An endless running play, always moving behind the real page: two
-// blockers escort the ball carrier, one defender trails, chasing but never
-// catching up -- the formation just loops off the right edge and re-enters
-// from the left, forever, never scoring.
+const DRIVES = [
+  { top: "12%", duration: "12s", delayOffset: 0, band: "field-drive-near" },
+  { top: "44%", duration: "16s", delayOffset: 3, band: "field-drive-mid" },
+  { top: "76%", duration: "20s", delayOffset: 6, band: "field-drive-far" },
+];
+
+// An endless running play, always moving behind the real page: two blockers
+// escort the ball carrier, one defender trails, chasing but never catching
+// up. Three of these drives run at once, at different heights/speeds/scales
+// (near/mid/far), so the whole viewport has action in it over time instead
+// of one static band -- each loops off the right edge and re-enters from
+// the left, forever, never scoring.
 export default function FieldScene() {
   return (
     <div className="field-scene" aria-hidden="true">
-      <div className="field-formation">
-        <Defender delay="0.05s" />
-        <Blocker delay="0.18s" />
-        <Runner delay="0s" />
-        <Blocker delay="0.27s" />
-      </div>
+      {DRIVES.map((d, i) => (
+        <div
+          key={i}
+          className={`field-formation ${d.band}`}
+          style={{ top: d.top, animationDuration: d.duration, animationDelay: `-${d.delayOffset}s` }}
+        >
+          <Defender delay="0.05s" />
+          <Blocker delay="0.18s" />
+          <Runner delay="0s" />
+          <Blocker delay="0.27s" />
+        </div>
+      ))}
     </div>
   );
 }
