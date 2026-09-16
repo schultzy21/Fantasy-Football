@@ -14,6 +14,10 @@ import * as sleeper from "./sleeper";
 import { buildTeams, sortByStandings, type Team } from "./standings";
 import type { SleeperDraftPick, SleeperMatchup, SleeperState } from "./types";
 
+// Display name shown on the site, independent of whatever the league is
+// named in Sleeper's own settings.
+const LEAGUE_DISPLAY_NAME = "2026 Nations Fantasy Football League";
+
 export type LeagueData = {
   leagueName: string;
   season: string;
@@ -130,7 +134,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     : { seasons: [], records: { highestSingleWeekScore: null } };
 
   const brief = buildBrief({
-    leagueName: league.name.trim(),
+    leagueName: LEAGUE_DISPLAY_NAME,
     season: league.season,
     week: state.week,
     seasonType: state.season_type,
@@ -144,7 +148,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   });
 
   return {
-    leagueName: league.name.trim(),
+    leagueName: LEAGUE_DISPLAY_NAME,
     season: league.season,
     state,
     isPreDraft: league.status === "pre_draft",

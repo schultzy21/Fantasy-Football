@@ -7,6 +7,9 @@ import type { PlayersMap, SleeperMatchup, SleeperTransaction } from "./types";
 const DEFAULT_REGULAR_SEASON_WEEKS = 14;
 const MAX_WEEKS = 18;
 
+// Kept in sync with lib/league-data.ts's LEAGUE_DISPLAY_NAME.
+const LEAGUE_DISPLAY_NAME = "2026 Nations Fantasy Football League";
+
 export type TransactionSummary = {
   teamName: string;
   adds: { playerName: string; points: number | null }[];
@@ -196,7 +199,7 @@ export async function getNewsletterBriefContext(leagueId: string): Promise<Newsl
   }
 
   const brief = buildNewsletterBrief({
-    leagueName: league.name.trim(),
+    leagueName: LEAGUE_DISPLAY_NAME,
     season: league.season,
     week: targetWeek,
     isPreseason,
