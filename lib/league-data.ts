@@ -12,7 +12,8 @@ import { buildLatestCompletedRecap, type WeeklyRecap } from "./recap";
 import { computeRankingsHistory, type RankingsHistoryPoint } from "./rankings-history";
 import * as sleeper from "./sleeper";
 import { buildTeams, sortByStandings, type Team } from "./standings";
-import type { SleeperDraftPick, SleeperMatchup, SleeperState } from "./types";
+import { computeTransactionSummaries, type TeamTransactionSummary } from "./transactions";
+import type { SleeperDraftPick, SleeperMatchup, SleeperState, SleeperTransaction } from "./types";
 
 // Display name shown on the site, independent of whatever the league is
 // named in Sleeper's own settings.
@@ -33,6 +34,7 @@ export type LeagueData = {
   predictions: PredictionsOutlook;
   history: { seasons: SeasonSummary[]; records: LeagueRecords };
   draftPicks: (SleeperDraftPick & { playerName: string })[];
+  transactionSummaries: TeamTransactionSummary[];
   brief: string;
 };
 
@@ -133,6 +135,16 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     ? await getLeagueHistory(league).catch(() => ({ seasons: [], records: { highestSingleWeekScore: null } }))
     : { seasons: [], records: { highestSingleWeekScore: null } };
 
+  // Transactions can happen before Week 1 kicks off (preseason waiver
+  // claims), so this covers every week up to the current one, not just the
+  // regular season weeks used for matchups above.
+  const transactionWeeks = Array.from({ length: Math.min(Math.max(state.week, 0), MAX_WEEKS) }, (_, i) => i + 1);
+  const weeklyTransactions: SleeperTransaction[][] = await Promise.all(
+    transactionWeeks.map((w) => sleeper.getTransactions(leagueId, w).catch(() => [] as SleeperTransaction[])),
+  );
+  const players = await sleeper.getPlayers();
+  const transactionSummaries = computeTransactionSummaries(weeklyTransactions.flat(), teamsByRoster, players);
+
   const brief = buildBrief({
     leagueName: LEAGUE_DISPLAY_NAME,
     season: league.season,
@@ -162,6 +174,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     predictions,
     history,
     draftPicks,
+    transactionSummaries,
     brief,
   };
 }

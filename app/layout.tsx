@@ -19,7 +19,7 @@ const pixelBody = VT323({
 
 export const metadata: Metadata = {
   title: "2026 Nations Fantasy Football League Hub",
-  description: "Weekly league newspaper for the 2026 Nations Fantasy Football League.",
+  description: "League hub for the 2026 Nations Fantasy Football League.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

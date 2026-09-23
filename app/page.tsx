@@ -1,12 +1,11 @@
 import DraftSection from "@/components/DraftSection";
 import HistorySection from "@/components/HistorySection";
-import NewsletterSection from "@/components/NewsletterSection";
 import PositionsSection from "@/components/PositionsSection";
 import PowerRankingsSection from "@/components/PowerRankingsSection";
 import PredictionsSection from "@/components/PredictionsSection";
 import StandingsTable from "@/components/StandingsTable";
+import TransactionsSection from "@/components/TransactionsSection";
 import WeeklyRecapSection from "@/components/WeeklyRecapSection";
-import { claudeConfigured } from "@/lib/claude";
 import { getLeagueData } from "@/lib/league-data";
 import * as sleeper from "@/lib/sleeper";
 import { supabase, type GeneratedContentRow } from "@/lib/supabase";
@@ -24,31 +23,9 @@ async function getGeneratedContent(season: string, week: number): Promise<Genera
   return (data as GeneratedContentRow) ?? null;
 }
 
-// The newsletter publishes on its own weekly (Tuesday) schedule, which can
-// land on a different week number than the "current" one shown everywhere
-// else on the page (e.g. Sleeper's current week already ticked forward by
-// the time Tuesday's cron runs) -- so it's looked up independently as
-// "whichever issue was published most recently," not tied to the current week.
-async function getLatestNewsletter(
-  season: string,
-): Promise<{ week: number; headline: string | null; article: string | null } | null> {
-  if (!supabase) return null;
-  const { data } = await supabase
-    .from("generated_content")
-    .select("week, newsletter_headline, newsletter_article")
-    .eq("season", season)
-    .not("newsletter_article", "is", null)
-    .order("week", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  return { week: data.week, headline: data.newsletter_headline, article: data.newsletter_article };
-}
-
 export default async function Home() {
   const data = await getLeagueData(sleeper.getLeagueId());
   const generated = await getGeneratedContent(data.season, data.state.week);
-  const newsletter = await getLatestNewsletter(data.season);
 
   const seasonTypeLabel =
     data.state.season_type === "pre" ? "Preseason" : data.state.season_type === "post" ? "Postseason" : "Regular Season";
@@ -73,8 +50,8 @@ export default async function Home() {
         <a href="#power">Power Rankings</a>
         <a href="#positions">Positions</a>
         <a href="#predictions">Predictions</a>
+        <a href="#transactions">Transactions</a>
         <a href="#draft">Draft</a>
-        <a href="#newsletter">Newsletter</a>
       </nav>
 
       <section id="overview" className="view" data-yard="OWN 20">
@@ -115,17 +92,9 @@ export default async function Home() {
         isProjected={data.rankingsAreProjected}
       />
 
-      <DraftSection draftPicks={data.draftPicks} />
+      <TransactionsSection summaries={data.transactionSummaries} />
 
-      <NewsletterSection
-        leagueName={data.leagueName}
-        season={data.season}
-        week={newsletter?.week ?? null}
-        headline={newsletter?.headline ?? null}
-        article={newsletter?.article ?? null}
-        claudeConfigured={claudeConfigured()}
-        targetWeek={data.recap?.week ?? data.state.week}
-      />
+      <DraftSection draftPicks={data.draftPicks} />
 
       <footer className="foot">
         Data from the public Sleeper API. Refreshes automatically every few minutes.

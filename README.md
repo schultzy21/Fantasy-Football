@@ -3,7 +3,7 @@
 A single website that is the home page for your Sleeper fantasy football league. It
 reads live data from Sleeper every time someone visits, and shows standings, power
 rankings (with a week-by-week trend chart), position group insights, a predictions
-outlook, league history, draft results, and a weekly written newsletter. Before the
+outlook, league history, transaction activity, and draft results. Before the
 season starts, power rankings, predictions, and position groups all run on a
 projection built from this league's real draft order instead of sitting empty, and
 switch over to real stats automatically once games are played.
@@ -20,16 +20,14 @@ Three free services work together:
   pushed to GitHub, Vercel automatically rebuilds and updates the live site. This is
   what makes it "auto-update."
 - **Supabase** -- a small database that caches the AI-written weekly content (recap,
-  power ranking blurbs, predictions, position group notes, newsletter) so it's
-  generated once and everyone sees the same version, instead of regenerating on
-  every visit.
+  power ranking blurbs, predictions, position group notes) so it's generated once
+  and everyone sees the same version, instead of regenerating on every visit.
 
 Nothing runs on your own computer once it's deployed. The site fetches fresh data
 from Sleeper's public API on its own, on a timer (every 5 minutes) -- you don't
-have to "run an update." The newsletter doesn't need an Anthropic API key at all
-by default -- each week you just ask Claude (in any chat, using your normal Claude
-account, no extra billing) to write it, and paste the result into a small form on
-the site. See "Every week" below.
+have to "run an update." Nothing needs an Anthropic API key by default -- the
+numbers (standings, recaps, power rankings, transactions, predictions) are all
+computed directly from Sleeper's data with no AI involved.
 
 ---
 
@@ -63,7 +61,6 @@ earlier version of it.
    | `NEXT_PUBLIC_SUPABASE_URL` | `https://drkqedzlrowgrhesxcvk.supabase.co` |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `sb_publishable_YrDuAzWwTIYjSY69fgBC5g_7uGq5Cgx` |
    | `ANTHROPIC_API_KEY` | *(leave blank for now -- see the optional section below)* |
-   | `CRON_SECRET` | *(optional -- leave blank, or any random string; see below)* |
 
 5. Click **Deploy**. After a minute or two you'll get a live URL like
    `fantasy-football-yourname.vercel.app`. That's the link to share with your league.
@@ -107,49 +104,29 @@ Open http://localhost:3000 in your browser.
 
 ## Every week
 
-**Nothing is required for the numbers.** The page re-checks Sleeper for fresh data
-automatically (about every 5 minutes) whenever someone loads it. Standings, recaps,
-power rankings, the trend chart, position groups, and predictions update themselves
-once games are played.
+**Nothing is required.** The page re-checks Sleeper for fresh data automatically
+(about every 5 minutes) whenever someone loads it. Standings, recaps, power
+rankings, the trend chart, position groups, transactions, and predictions all
+update themselves once games are played -- no AI, no manual step, nothing to
+publish by hand.
 
-### Publishing the newsletter (no API key, no billing)
+### Optional: AI-written recap and blurbs
 
-This is the one thing you do by hand each week, and it takes one message to Claude:
-
-1. In any Claude chat (Claude.ai, this one, whatever you normally use -- your
-   regular account, no extra cost), say something like: **"Write this week's
-   fantasy football newsletter using
-   `https://<your-site>.vercel.app/api/newsletter-brief` for the data, and search
-   the web for real current NFL news to include."**
-2. Claude will fetch that page (it's a plain-text summary of the week's real
-   matchups, waiver moves, and lineup blunders), search for real news, and hand you
-   back a headline and article.
-3. On the site, open the **Newsletter** tab, scroll to **"Publish this week's
-   issue,"** paste the headline and article in, and click **Publish**. It saves
-   instantly and everyone sees it.
-
-That's it -- no Anthropic API key, no billing setup, nothing else to configure.
-`/api/newsletter-brief` is a public page (no login needed) precisely so Claude can
-fetch it for you when asked.
-
-### Optional: numbers write-up button (only if you add an Anthropic key)
-
-If you later add an `ANTHROPIC_API_KEY` (see below), a **Generate This Week's
-Write-Up** button appears near the top of the page. Click it and it writes the
-recap, power ranking blurbs, position group notes, and predictions outlook in one
-shot -- separate from the newsletter. Without a key, you'll instead see a **Copy
-Brief** button with a clean text summary -- paste that into Claude yourself the
-same way as the newsletter above.
+If you add an `ANTHROPIC_API_KEY` (see below), Claude can write a witty weekly
+recap, power ranking blurbs, position group notes, and a predictions outlook.
+There's no button for this on the site -- trigger it by sending a `POST` request
+to `/api/generate` on your deployment (e.g.
+`curl -X POST https://<your-site>.vercel.app/api/generate`). It saves straight to
+Supabase and everyone sees it on their next page load. Without a key, those
+sections just show the plain numbers with no written commentary.
 
 ---
 
 ## Adding an Anthropic API key later (fully optional)
 
-You do **not** need this for the newsletter -- that works for free by asking
-Claude directly each week (see above). Adding a key only buys you two things: a
-one-click **Generate** button for the numbers write-up instead of copy/pasting,
-and (if you want it) a fully hands-off newsletter that writes and publishes
-itself automatically every Tuesday morning with no message to Claude required.
+Adding a key only buys you one thing: AI-written commentary (recap, power ranking
+blurbs, position notes, predictions outlook) instead of numbers alone. Nothing
+else on the site needs it.
 
 1. Go to https://console.anthropic.com, sign in, and create an API key (Settings ->
    API Keys -> Create Key).
@@ -158,22 +135,8 @@ itself automatically every Tuesday morning with no message to Claude required.
 4. Vercel will ask you to redeploy for the change to take effect -- click
    **Redeploy** (or just push any small change to GitHub).
 
-The site uses Claude Sonnet 5 (`claude-sonnet-5`). The numbers write-up is one
-short request (well under a cent). The newsletter also uses a live web search for
-NFL news, so it costs a bit more -- still small (a few cents), and it only runs
-once a week automatically, so there's no way to run it up by accident.
-
-### Optional: lock down the newsletter's schedule endpoint
-
-Vercel's cron scheduler calls a URL on your site once a week to trigger the
-newsletter. By default anyone who found that exact URL could also call it (which
-would just cost you a few cents, not a security risk -- but easy to close off):
-
-1. Generate any random string (e.g. run `openssl rand -hex 24` in a terminal, or
-   just mash the keyboard).
-2. Set it as `CRON_SECRET` in Vercel's Environment Variables.
-3. That's it -- Vercel automatically sends this value to your scheduled endpoint,
-   and the endpoint checks it. No other setup needed.
+The site uses Claude Sonnet 5 (`claude-sonnet-5`). Each write-up is one short
+request -- well under a cent per run.
 
 ---
 
@@ -210,16 +173,12 @@ push the change to GitHub.
 ## What's in this repo
 
 ```
-app/                       The page, the manual-generate API route, the public
-                            newsletter-brief route Claude fetches, and the
-                            optional scheduled newsletter route (needs a key)
-components/                UI pieces for each section of the page, including the
-                            "Publish this week's issue" form
+app/                       The page and the optional /api/generate route (needs
+                            an Anthropic key) for AI-written commentary
+components/                UI pieces for each section of the page
 lib/                       Sleeper API client, all the stats/ranking/projection
                             math, Supabase and Claude clients
 supabase/schema.sql        Run this in the Supabase SQL editor (see step 1 above)
-vercel.json                Declares the (optional, key-only) Tuesday newsletter
-                            schedule to Vercel
 .env.example               Template for the environment variables (copy to
                             .env.local)
 ```
@@ -228,22 +187,9 @@ vercel.json                Declares the (optional, key-only) Tuesday newsletter
 
 - **Page loads but sections are empty / say "not enough data yet"**: normal before
   the draft and before Week 1 finishes.
-- **"Generate" button gives an error**: the Anthropic key is missing or invalid, or
-  you're out of API credit at console.anthropic.com. (This only affects the numbers
-  write-up button -- the newsletter doesn't need this at all, see below.)
-- **Generated write-ups / published newsletter don't save**: the two Supabase
+- **`POST /api/generate` gives an error**: the Anthropic key is missing or
+  invalid, or you're out of API credit at console.anthropic.com.
+- **Generated write-ups don't save / don't show up**: the two Supabase
   environment variables are missing from Vercel (or `.env.local` if running
-  locally) -- see step 2/local setup above.
-- **Publish button on the newsletter form doesn't seem to do anything**: check the
-  browser console for a Supabase error -- most likely `supabase/schema.sql` hasn't
-  been run yet in your project, so the `generated_content` table doesn't exist.
-- **`/api/newsletter-brief` returns an error or empty page**: means Sleeper's API
-  hiccuped or `SLEEPER_LEAGUE_ID` is misconfigured in Vercel -- reload it in a
-  minute, it's read fresh from Sleeper every time.
-- **(Only if you added an Anthropic key) Newsletter hasn't shown up yet**: the
-  automatic version only publishes after a full week of games has happened, on the
-  following Tuesday morning. To trigger it manually instead of waiting: visit
-  `https://<your-site>/api/cron/newsletter` in a browser, or
-  `curl -X POST https://<your-site>/api/cron/newsletter` if you set a
-  `CRON_SECRET` (then add `-H "Authorization: Bearer <your-secret>"`). Safe to run
-  more than once -- it skips itself if that week's issue already exists.
+  locally), or `supabase/schema.sql` hasn't been run yet in your project so the
+  `generated_content` table doesn't exist -- see step 1/step 2 above.
