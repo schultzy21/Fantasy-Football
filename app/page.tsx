@@ -1,4 +1,5 @@
 import DraftSection from "@/components/DraftSection";
+import HeadToHeadSection from "@/components/HeadToHeadSection";
 import HistorySection from "@/components/HistorySection";
 import PositionsSection from "@/components/PositionsSection";
 import PowerRankingsSection from "@/components/PowerRankingsSection";
@@ -50,6 +51,7 @@ export default async function Home() {
         <a href="#power">Power Rankings</a>
         <a href="#positions">Positions</a>
         <a href="#predictions">Predictions</a>
+        <a href="#head-to-head">Matchup History</a>
         <a href="#transactions">Transactions</a>
         <a href="#draft">Draft</a>
       </nav>
@@ -90,6 +92,13 @@ export default async function Home() {
         predictions={data.predictions}
         narrative={generated?.predictions_outlook ?? null}
         isProjected={data.rankingsAreProjected}
+      />
+
+      <HeadToHeadSection
+        people={data.standings
+          .filter((t): t is typeof t & { ownerId: string } => t.ownerId != null)
+          .map((t) => ({ ownerId: t.ownerId, teamName: t.teamName }))}
+        games={data.headToHeadGames}
       />
 
       <TransactionsSection summaries={data.transactionSummaries} />

@@ -542,6 +542,23 @@ button {
   box-shadow: 0 0 0 #000;
 }
 
+.select {
+  background: var(--panel2);
+  color: var(--chalk);
+  border: 2px solid var(--chalk);
+  border-radius: 0;
+  padding: 9px 12px;
+  font-family: var(--font-body), monospace;
+  font-size: 15px;
+  box-shadow: 4px 4px 0 #000;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
 .btn.gold {
   background: var(--gold);
   color: var(--gold-ink);

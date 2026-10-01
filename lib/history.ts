@@ -1,6 +1,6 @@
 import * as sleeper from "./sleeper";
 import { buildTeams, sortByStandings } from "./standings";
-import type { SleeperLeague } from "./types";
+import type { SleeperLeague, SleeperMatchup } from "./types";
 
 export type SeasonSummary = {
   season: string;
@@ -14,6 +14,47 @@ export type LeagueRecords = {
   highestSingleWeekScore: { teamName: string; season: string; week: number; points: number } | null;
 };
 
+// One completed game between two owners -- the building block for
+// head-to-head records. Keyed by owner ID (not roster ID, which resets
+// every season) so a rivalry can be tracked across multiple years.
+export type HeadToHeadGame = {
+  season: string;
+  week: number;
+  ownerIdA: string;
+  ownerIdB: string;
+  pointsA: number;
+  pointsB: number;
+};
+
+// Groups one week's matchups into head-to-head games by pairing rosters that
+// share a matchup_id. Shared by every season's scan (current and past).
+export function pairMatchupsIntoGames(
+  weekMatchups: SleeperMatchup[],
+  season: string,
+  week: number,
+  ownerIdByRoster: Map<number, string | null>,
+): HeadToHeadGame[] {
+  const byMatchupId = new Map<number, SleeperMatchup[]>();
+  for (const m of weekMatchups) {
+    if (m.matchup_id == null) continue;
+    const arr = byMatchupId.get(m.matchup_id) ?? [];
+    arr.push(m);
+    byMatchupId.set(m.matchup_id, arr);
+  }
+
+  const games: HeadToHeadGame[] = [];
+  for (const pair of byMatchupId.values()) {
+    if (pair.length !== 2) continue;
+    const [m1, m2] = pair;
+    if (m1.points <= 0 && m2.points <= 0) continue; // not played yet
+    const ownerIdA = ownerIdByRoster.get(m1.roster_id);
+    const ownerIdB = ownerIdByRoster.get(m2.roster_id);
+    if (!ownerIdA || !ownerIdB) continue;
+    games.push({ season, week, ownerIdA, ownerIdB, pointsA: m1.points, pointsB: m2.points });
+  }
+  return games;
+}
+
 // Walks previous_league_id backwards from the current league. Capped so a
 // very old league chain can't blow past Sleeper's rate limit or make the
 // page slow to load.
@@ -22,8 +63,10 @@ const MAX_SEASONS_BACK = 10;
 export async function getLeagueHistory(currentLeague: SleeperLeague): Promise<{
   seasons: SeasonSummary[];
   records: LeagueRecords;
+  games: HeadToHeadGame[];
 }> {
   const seasons: SeasonSummary[] = [];
+  const games: HeadToHeadGame[] = [];
   let highest: LeagueRecords["highestSingleWeekScore"] = null;
 
   let previousId = currentLeague.previous_league_id;
@@ -47,6 +90,7 @@ export async function getLeagueHistory(currentLeague: SleeperLeague): Promise<{
     const teams = buildTeams(league, users, rosters);
     const ranked = sortByStandings(teams);
     const teamsByRoster = new Map(teams.map((t) => [t.rosterId, t]));
+    const ownerIdByRoster = new Map(teams.map((t) => [t.rosterId, t.ownerId]));
 
     // Champion = winner of the final winners-bracket match, when available;
     // otherwise fall back to best regular-season record.
@@ -76,8 +120,8 @@ export async function getLeagueHistory(currentLeague: SleeperLeague): Promise<{
       })),
     });
 
-    // Best-effort: scan a handful of weeks for a single-week high score.
-    // Capped at 17 weeks and run in parallel to stay fast.
+    // Best-effort: scan a handful of weeks for a single-week high score, and
+    // every head-to-head game played. Capped at 17 weeks, run in parallel.
     try {
       const weeks = await Promise.all(
         Array.from({ length: 17 }, (_, i) => i + 1).map((w) =>
@@ -91,6 +135,7 @@ export async function getLeagueHistory(currentLeague: SleeperLeague): Promise<{
             highest = { teamName, season: league.season, week: weekIndex + 1, points: m.points };
           }
         }
+        games.push(...pairMatchupsIntoGames(week, league.season, weekIndex + 1, ownerIdByRoster));
       });
     } catch {
       // Skip records for this season if matchup fetches fail.
@@ -99,5 +144,5 @@ export async function getLeagueHistory(currentLeague: SleeperLeague): Promise<{
     previousId = league.previous_league_id;
   }
 
-  return { seasons, records: { highestSingleWeekScore: highest } };
+  return { seasons, records: { highestSingleWeekScore: highest }, games };
 }

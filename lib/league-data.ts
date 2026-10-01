@@ -1,5 +1,5 @@
 import { buildBrief } from "./brief";
-import { getLeagueHistory, type LeagueRecords, type SeasonSummary } from "./history";
+import { getLeagueHistory, pairMatchupsIntoGames, type HeadToHeadGame, type LeagueRecords, type SeasonSummary } from "./history";
 import { computePositionStrength, type PositionStrength } from "./positions";
 import { computePowerRankings, type PowerRank } from "./power-rankings";
 import { computePredictions, type PredictionsOutlook } from "./predictions";
@@ -35,6 +35,7 @@ export type LeagueData = {
   history: { seasons: SeasonSummary[]; records: LeagueRecords };
   draftPicks: (SleeperDraftPick & { playerName: string })[];
   transactionSummaries: TeamTransactionSummary[];
+  headToHeadGames: HeadToHeadGame[];
   brief: string;
 };
 
@@ -132,8 +133,16 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   const rankingsHistory = computeRankingsHistory(teams, weeklyMatchups, preseasonRanksForHistory);
 
   const history = league.previous_league_id
-    ? await getLeagueHistory(league).catch(() => ({ seasons: [], records: { highestSingleWeekScore: null } }))
-    : { seasons: [], records: { highestSingleWeekScore: null } };
+    ? await getLeagueHistory(league).catch(() => ({ seasons: [], records: { highestSingleWeekScore: null }, games: [] }))
+    : { seasons: [], records: { highestSingleWeekScore: null }, games: [] };
+
+  // This season's games, by the same pairing logic used for past seasons,
+  // so head-to-head records span every year this league has played.
+  const ownerIdByRoster = new Map(teams.map((t) => [t.rosterId, t.ownerId]));
+  const currentSeasonGames = weeklyMatchups.flatMap((week, i) =>
+    pairMatchupsIntoGames(week, league.season, i + 1, ownerIdByRoster),
+  );
+  const headToHeadGames = [...currentSeasonGames, ...history.games];
 
   // Transactions can happen before Week 1 kicks off (preseason waiver
   // claims), so this covers every week up to the current one, not just the
@@ -175,6 +184,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     history,
     draftPicks,
     transactionSummaries,
+    headToHeadGames,
     brief,
   };
 }
