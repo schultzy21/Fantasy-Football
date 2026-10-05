@@ -425,6 +425,12 @@ tr:last-child td {
   color: var(--muted);
 }
 
+.strike {
+  text-decoration: line-through;
+  text-decoration-color: var(--flag);
+  text-decoration-thickness: 2px;
+}
+
 .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;

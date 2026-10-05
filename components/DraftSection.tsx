@@ -66,6 +66,7 @@ export default function DraftSection({
                   <th className="num">Rd</th>
                   <th>Player</th>
                   <th>Pos</th>
+                  <th>Team</th>
                 </tr>
               </thead>
               <tbody>
@@ -75,6 +76,7 @@ export default function DraftSection({
                   const currentRosterId = insight?.currentRosterId ?? null;
                   const hasNewOwner = currentRosterId !== null && currentRosterId !== draftedByRosterId;
                   const isFreeAgent = insight && currentRosterId === null;
+                  const stillOnDraftTeam = !insight || currentRosterId === draftedByRosterId;
 
                   return (
                     <tr key={p.pick_no}>
@@ -102,6 +104,9 @@ export default function DraftSection({
                         )}
                       </td>
                       <td className="muted">{p.metadata?.position ?? ""}</td>
+                      <td className={stillOnDraftTeam ? "muted" : "muted strike"}>
+                        {nameByRoster.get(draftedByRosterId) ?? "Unknown"}
+                      </td>
                     </tr>
                   );
                 })}
