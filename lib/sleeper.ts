@@ -17,6 +17,7 @@ import type {
   SleeperTransaction,
   SleeperUser,
   PlayersMap,
+  WeeklyStatsMap,
 } from "./types";
 
 const BASE = "https://api.sleeper.app/v1";
@@ -82,6 +83,20 @@ export function getDraftPicks(draftId: string): Promise<SleeperDraftPick[]> {
 // "round" here is the week number for a redraft league's regular season.
 export function getTransactions(leagueId: string, round: number): Promise<SleeperTransaction[]> {
   return getJson<SleeperTransaction[]>(`/league/${leagueId}/transactions/${round}`, 3600);
+}
+
+// Undocumented but stable, long-used-by-the-community endpoints -- same host,
+// keyed by player_id (or DEF team abbreviation) -> stat key -> value, for
+// every NFL player that week (not just this league's rosters).
+// Actual results for a past week; immutable once the week is final.
+export function getStats(season: string, week: number): Promise<WeeklyStatsMap> {
+  return getJson<WeeklyStatsMap>(`/stats/nfl/regular/${season}/${week}`, 3600);
+}
+
+// Rest-of-season-style per-week projections; updates through the week as
+// news breaks, so a shorter cache than final stats.
+export function getProjections(season: string, week: number): Promise<WeeklyStatsMap> {
+  return getJson<WeeklyStatsMap>(`/projections/nfl/regular/${season}/${week}`, 1800);
 }
 
 // The full player dictionary is ~20MB -- too big for Next.js's built-in fetch

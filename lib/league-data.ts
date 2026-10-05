@@ -13,6 +13,7 @@ import { computeRankingsHistory, type RankingsHistoryPoint } from "./rankings-hi
 import * as sleeper from "./sleeper";
 import { buildTeams, sortByStandings, type Team } from "./standings";
 import { computeTransactionSummaries, type TeamTransactionSummary } from "./transactions";
+import { computePlayerValues, type PlayerValue } from "./trade-value";
 import type { SleeperDraftPick, SleeperMatchup, SleeperState, SleeperTransaction } from "./types";
 
 // Display name shown on the site, independent of whatever the league is
@@ -36,6 +37,7 @@ export type LeagueData = {
   draftPicks: (SleeperDraftPick & { playerName: string })[];
   transactionSummaries: TeamTransactionSummary[];
   headToHeadGames: HeadToHeadGame[];
+  playerValues: PlayerValue[];
   brief: string;
 };
 
@@ -154,6 +156,8 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   const players = await sleeper.getPlayers();
   const transactionSummaries = computeTransactionSummaries(weeklyTransactions.flat(), teamsByRoster, players);
 
+  const playerValues = await computePlayerValues(league, teams, state.week, players).catch(() => [] as PlayerValue[]);
+
   const brief = buildBrief({
     leagueName: LEAGUE_DISPLAY_NAME,
     season: league.season,
@@ -185,6 +189,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     draftPicks,
     transactionSummaries,
     headToHeadGames,
+    playerValues,
     brief,
   };
 }

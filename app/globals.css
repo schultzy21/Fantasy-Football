@@ -559,6 +559,18 @@ button {
   outline-offset: 2px;
 }
 
+.trade-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 720px) {
+  .trade-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .btn.gold {
   background: var(--gold);
   color: var(--gold-ink);

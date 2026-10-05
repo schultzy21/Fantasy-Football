@@ -12,6 +12,7 @@ export type SleeperLeague = {
   draft_id: string | null;
   total_rosters: number;
   roster_positions: string[];
+  scoring_settings: Record<string, number>;
   settings: {
     playoff_week_start?: number;
     playoff_teams?: number;
@@ -109,6 +110,13 @@ export type SleeperPlayer = {
   position?: string | null;
   team?: string | null;
   fantasy_positions?: string[] | null;
+  injury_status?: string | null; // "Questionable" | "Doubtful" | "Out" | "IR" | ...
 };
 
 export type PlayersMap = Record<string, SleeperPlayer>;
+
+// player_id (or DEF team abbreviation) -> stat key -> value, for one week.
+// Shared shape for both the stats endpoint (actual, past weeks) and the
+// projections endpoint (projected, any week) -- same stat key vocabulary,
+// which also happens to match SleeperLeague.scoring_settings' keys exactly.
+export type WeeklyStatsMap = Record<string, Record<string, number>>;

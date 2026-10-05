@@ -5,6 +5,7 @@ import PositionsSection from "@/components/PositionsSection";
 import PowerRankingsSection from "@/components/PowerRankingsSection";
 import PredictionsSection from "@/components/PredictionsSection";
 import StandingsTable from "@/components/StandingsTable";
+import TradeAnalyzerSection from "@/components/TradeAnalyzerSection";
 import TransactionsSection from "@/components/TransactionsSection";
 import WeeklyRecapSection from "@/components/WeeklyRecapSection";
 import { getLeagueData } from "@/lib/league-data";
@@ -52,6 +53,7 @@ export default async function Home() {
         <a href="#positions">Positions</a>
         <a href="#predictions">Predictions</a>
         <a href="#head-to-head">Matchup History</a>
+        <a href="#trade-analyzer">Trade Analyzer</a>
         <a href="#transactions">Transactions</a>
         <a href="#draft">Draft</a>
       </nav>
@@ -99,6 +101,11 @@ export default async function Home() {
           .filter((t): t is typeof t & { ownerId: string } => t.ownerId != null)
           .map((t) => ({ ownerId: t.ownerId, teamName: t.teamName }))}
         games={data.headToHeadGames}
+      />
+
+      <TradeAnalyzerSection
+        playerValues={data.playerValues}
+        teams={data.standings.map((t) => ({ rosterId: t.rosterId, teamName: t.teamName }))}
       />
 
       <TransactionsSection summaries={data.transactionSummaries} />
