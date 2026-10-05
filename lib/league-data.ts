@@ -1,4 +1,5 @@
 import { buildBrief } from "./brief";
+import { computeDraftInsights, type DraftPickInsight } from "./draft-insights";
 import { getLeagueHistory, pairMatchupsIntoGames, type HeadToHeadGame, type LeagueRecords, type SeasonSummary } from "./history";
 import { computePositionStrength, type PositionStrength } from "./positions";
 import { computePowerRankings, type PowerRank } from "./power-rankings";
@@ -34,7 +35,8 @@ export type LeagueData = {
   positions: PositionStrength[];
   predictions: PredictionsOutlook;
   history: { seasons: SeasonSummary[]; records: LeagueRecords };
-  draftPicks: (SleeperDraftPick & { playerName: string })[];
+  draftPicks: (SleeperDraftPick & { playerName: string; injuryStatus: string | null })[];
+  draftInsights: Record<string, DraftPickInsight>;
   transactionSummaries: TeamTransactionSummary[];
   headToHeadGames: HeadToHeadGame[];
   playerValues: PlayerValue[];
@@ -83,7 +85,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   }
 
   // Draft results (useful pre-season, and the input for projected rankings).
-  let draftPicks: (SleeperDraftPick & { playerName: string })[] = [];
+  let draftPicks: (SleeperDraftPick & { playerName: string; injuryStatus: string | null })[] = [];
   try {
     const drafts = await sleeper.getDrafts(leagueId);
     const draft = drafts[0];
@@ -99,7 +101,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
               p.metadata?.first_name && p.metadata?.last_name
                 ? `${p.metadata.first_name} ${p.metadata.last_name}`
                 : player?.full_name ?? "Unknown Player";
-            return { ...p, playerName: name };
+            return { ...p, playerName: name, injuryStatus: player?.injury_status ?? null };
           });
       }
     }
@@ -158,6 +160,14 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
 
   const playerValues = await computePlayerValues(league, teams, state.week, players).catch(() => [] as PlayerValue[]);
 
+  const draftInsights = await computeDraftInsights(
+    league,
+    draftPicks,
+    teams,
+    weeklyTransactions.flat(),
+    state.week,
+  ).catch(() => ({}) as Record<string, DraftPickInsight>);
+
   const brief = buildBrief({
     leagueName: LEAGUE_DISPLAY_NAME,
     season: league.season,
@@ -187,6 +197,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     predictions,
     history,
     draftPicks,
+    draftInsights,
     transactionSummaries,
     headToHeadGames,
     playerValues,

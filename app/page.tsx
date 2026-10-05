@@ -110,7 +110,11 @@ export default async function Home() {
 
       <TransactionsSection summaries={data.transactionSummaries} />
 
-      <DraftSection draftPicks={data.draftPicks} />
+      <DraftSection
+        draftPicks={data.draftPicks}
+        draftInsights={data.draftInsights}
+        teams={data.standings.map((t) => ({ rosterId: t.rosterId, teamName: t.teamName }))}
+      />
 
       <footer className="foot">
         Data from the public Sleeper API. Refreshes automatically every few minutes.

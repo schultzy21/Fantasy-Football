@@ -1,17 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import InjuryPill from "./InjuryPill";
 import type { PlayerValue } from "@/lib/trade-value";
 
 type TeamRef = { rosterId: number; teamName: string };
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"] as const;
-
-function InjuryPill({ status }: { status: string | null }) {
-  if (!status) return null;
-  const severe = status === "Out" || status === "IR" || status === "Doubtful";
-  return <span className={`pill ${severe ? "flag" : "bubble"}`} style={{ marginLeft: 8 }}>{status}</span>;
-}
 
 function TrendArrow({ trend }: { trend: PlayerValue["snapShareTrend"] }) {
   if (trend === "up") return <span style={{ color: "var(--turf)" }}> &#9650;</span>;
