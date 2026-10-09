@@ -4,18 +4,24 @@ function formatMoneyline(ml: number): string {
   return ml > 0 ? `+${ml}` : `${ml}`;
 }
 
-function Side({ side, isFavorite }: { side: LiveOddsSide; isFavorite: boolean }) {
+function Side({ side, isFavorite, align }: { side: LiveOddsSide; isFavorite: boolean; align: "left" | "right" }) {
   return (
-    <div className="side" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span style={{ color: isFavorite ? "var(--gold)" : undefined, fontWeight: isFavorite ? 700 : 400 }}>
+    <div className="side" style={{ display: "flex", flexDirection: "column", gap: 4, textAlign: align }}>
+      <span style={{ fontSize: 13, color: isFavorite ? "var(--gold)" : "var(--chalk)", fontWeight: isFavorite ? 700 : 400 }}>
         {isFavorite ? "★ " : ""}
         {side.team.teamName}
       </span>
-      <span className="muted tnum" style={{ fontSize: 12 }}>
-        {Math.round(side.winProb * 100)}% &middot; {formatMoneyline(side.moneyline)}
-      </span>
-      <span className="muted" style={{ fontSize: 11 }}>
-        +{side.remainingProjected.toFixed(1)} proj. remaining
+      <span
+        className="tnum"
+        style={{
+          fontSize: 30,
+          fontWeight: 800,
+          fontFamily: "var(--font-display), monospace",
+          color: isFavorite ? "var(--gold)" : "var(--chalk)",
+          lineHeight: 1,
+        }}
+      >
+        {formatMoneyline(side.moneyline)}
       </span>
     </div>
   );
@@ -30,7 +36,7 @@ export default function LiveOddsSection({ week, odds }: { week: number; odds: Li
         <div className="eyebrow">{isOpen ? `Week ${week} · In Progress` : "Live Lines"}</div>
         <h2 className="sec">Live Lines</h2>
         <p className="lead">
-          Win odds from current score + remaining weekly projections for each starting lineup -- updates as scores
+          Moneyline from current score + remaining weekly projections for each starting lineup -- updates as scores
           and projections change, and closes once every game this week is final. For bragging rights only, not a
           real sportsbook.
         </p>
@@ -46,11 +52,16 @@ export default function LiveOddsSection({ week, odds }: { week: number; odds: Li
           <div>
             {odds!.map((m) => (
               <div key={m.matchupId} className="matchup">
-                <Side side={m.teamA} isFavorite={m.teamA.winProb >= m.teamB.winProb} />
-                <div className="score tnum">
-                  {m.teamA.actualPoints.toFixed(1)} &ndash; {m.teamB.actualPoints.toFixed(1)}
+                <Side side={m.teamA} isFavorite={m.teamA.winProb >= m.teamB.winProb} align="left" />
+                <div style={{ textAlign: "center" }}>
+                  <div className="score tnum">
+                    {m.teamA.actualPoints.toFixed(1)} &ndash; {m.teamB.actualPoints.toFixed(1)}
+                  </div>
+                  <div className="muted tnum" style={{ fontSize: 11, marginTop: 4 }}>
+                    proj {m.teamA.projectedFinal.toFixed(1)} &ndash; {m.teamB.projectedFinal.toFixed(1)}
+                  </div>
                 </div>
-                <Side side={m.teamB} isFavorite={m.teamB.winProb > m.teamA.winProb} />
+                <Side side={m.teamB} isFavorite={m.teamB.winProb > m.teamA.winProb} align="right" />
               </div>
             ))}
           </div>
