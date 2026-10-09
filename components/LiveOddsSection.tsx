@@ -8,7 +8,6 @@ function Side({ side, isFavorite, align }: { side: LiveOddsSide; isFavorite: boo
   return (
     <div className="side" style={{ display: "flex", flexDirection: "column", gap: 4, textAlign: align }}>
       <span style={{ fontSize: 13, color: isFavorite ? "var(--gold)" : "var(--chalk)", fontWeight: isFavorite ? 700 : 400 }}>
-        {isFavorite ? "★ " : ""}
         {side.team.teamName}
       </span>
       <span
