@@ -1,6 +1,7 @@
 import { buildBrief } from "./brief";
 import { computeDraftInsights, type DraftPickInsight } from "./draft-insights";
 import { getLeagueHistory, pairMatchupsIntoGames, type HeadToHeadGame, type LeagueRecords, type SeasonSummary } from "./history";
+import { computeLiveOdds, type LiveOddsMatchup } from "./live-odds";
 import { computePositionStrength, type PositionStrength } from "./positions";
 import { computePowerRankings, type PowerRank } from "./power-rankings";
 import { computePredictions, type PredictionsOutlook } from "./predictions";
@@ -40,6 +41,7 @@ export type LeagueData = {
   transactionSummaries: TeamTransactionSummary[];
   headToHeadGames: HeadToHeadGame[];
   playerValues: PlayerValue[];
+  liveOdds: LiveOddsMatchup[] | null;
   brief: string;
 };
 
@@ -160,6 +162,13 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
 
   const playerValues = await computePlayerValues(league, teams, state.week, players).catch(() => [] as PlayerValue[]);
 
+  // The live scoreboard/odds for whichever week is currently being played
+  // -- fetched directly rather than indexed out of weeklyMatchups above,
+  // since that array stops at the end of the regular season and the
+  // current week could be in the playoffs.
+  const currentWeekMatchups = await sleeper.getMatchups(leagueId, state.week).catch(() => [] as SleeperMatchup[]);
+  const liveOdds = await computeLiveOdds(league, state.week, currentWeekMatchups, teamsByRoster).catch(() => null);
+
   const draftInsights = await computeDraftInsights(
     league,
     draftPicks,
@@ -201,6 +210,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     transactionSummaries,
     headToHeadGames,
     playerValues,
+    liveOdds,
     brief,
   };
 }

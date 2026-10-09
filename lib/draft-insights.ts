@@ -1,3 +1,4 @@
+import { statPoints } from "./scoring";
 import * as sleeper from "./sleeper";
 import type { Team } from "./standings";
 import type { SleeperDraftPick, SleeperLeague, SleeperTransaction, WeeklyStatsMap } from "./types";
@@ -10,16 +11,6 @@ export type DraftPickInsight = {
 };
 
 const LAST_WEEK_OF_SEASON = 17;
-
-function statPoints(statLine: Record<string, number> | undefined, scoring: Record<string, number>): number {
-  if (!statLine) return 0;
-  let total = 0;
-  for (const [key, weight] of Object.entries(scoring)) {
-    const v = statLine[key];
-    if (typeof v === "number") total += v * weight;
-  }
-  return total;
-}
 
 // For every drafted player: who currently rosters them, whether the team
 // that drafted them later cut them loose, and how their rest-of-season

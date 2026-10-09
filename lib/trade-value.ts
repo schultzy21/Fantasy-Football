@@ -1,3 +1,4 @@
+import { statPoints } from "./scoring";
 import * as sleeper from "./sleeper";
 import type { Team } from "./standings";
 import type { PlayersMap, SleeperLeague, WeeklyStatsMap } from "./types";
@@ -25,16 +26,6 @@ const SNAP_TREND_THRESHOLD = 0.05;
 // a standard assumption (RB/WR lean, a little TE), used only to size each
 // position's replacement-level baseline below.
 const FLEX_SHARE: Record<string, number> = { RB: 0.4, WR: 0.45, TE: 0.15 };
-
-function statPoints(statLine: Record<string, number> | undefined, scoring: Record<string, number>): number {
-  if (!statLine) return 0;
-  let total = 0;
-  for (const [key, weight] of Object.entries(scoring)) {
-    const v = statLine[key];
-    if (typeof v === "number") total += v * weight;
-  }
-  return total;
-}
 
 function countStarterSlots(rosterPositions: string[]): Record<string, number> {
   const counts: Record<string, number> = {};

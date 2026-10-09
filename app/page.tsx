@@ -1,6 +1,7 @@
 import DraftSection from "@/components/DraftSection";
 import HeadToHeadSection from "@/components/HeadToHeadSection";
 import HistorySection from "@/components/HistorySection";
+import LiveOddsSection from "@/components/LiveOddsSection";
 import PositionsSection from "@/components/PositionsSection";
 import PowerRankingsSection from "@/components/PowerRankingsSection";
 import PredictionsSection from "@/components/PredictionsSection";
@@ -48,6 +49,7 @@ export default async function Home() {
         <span className="tabs-label">SELECT PLAY:</span>
         <a href="#overview">Overview</a>
         <a href="#history">History</a>
+        <a href="#live-odds">Live Lines</a>
         <a href="#recap">Weekly Recap</a>
         <a href="#power">Power Rankings</a>
         <a href="#positions">Positions</a>
@@ -74,6 +76,8 @@ export default async function Home() {
       </section>
 
       <HistorySection seasons={data.history.seasons} records={data.history.records} />
+
+      <LiveOddsSection week={data.state.week} odds={data.liveOdds} />
 
       <WeeklyRecapSection recap={data.recap} narrative={generated?.weekly_recap ?? null} />
 
