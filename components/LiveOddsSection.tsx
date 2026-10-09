@@ -32,11 +32,6 @@ export default function LiveOddsSection({ week, odds }: { week: number; odds: Li
       <div className="card">
         <div className="eyebrow">{isOpen ? `Week ${week} · In Progress` : "Live Lines"}</div>
         <h2 className="sec">Live Lines</h2>
-        <p className="lead">
-          Moneyline from current score + remaining weekly projections for each starting lineup -- updates as scores
-          and projections change, and closes once every game this week is final. For bragging rights only, not a
-          real sportsbook.
-        </p>
 
         {!isOpen && (
           <p className="muted">
