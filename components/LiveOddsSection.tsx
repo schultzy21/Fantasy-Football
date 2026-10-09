@@ -4,19 +4,17 @@ function formatMoneyline(ml: number): string {
   return ml > 0 ? `+${ml}` : `${ml}`;
 }
 
-function Side({ side, isFavorite, align }: { side: LiveOddsSide; isFavorite: boolean; align: "left" | "right" }) {
+function Side({ side, align }: { side: LiveOddsSide; align: "left" | "right" }) {
   return (
     <div className="side" style={{ display: "flex", flexDirection: "column", gap: 4, textAlign: align }}>
-      <span style={{ fontSize: 13, color: isFavorite ? "var(--gold)" : "var(--chalk)", fontWeight: isFavorite ? 700 : 400 }}>
-        {side.team.teamName}
-      </span>
+      <span style={{ fontSize: 13, color: "var(--chalk)", fontWeight: 400 }}>{side.team.teamName}</span>
       <span
         className="tnum"
         style={{
           fontSize: 30,
           fontWeight: 800,
           fontFamily: "var(--font-display), monospace",
-          color: isFavorite ? "var(--gold)" : "var(--chalk)",
+          color: "var(--chalk)",
           lineHeight: 1,
         }}
       >
@@ -51,7 +49,7 @@ export default function LiveOddsSection({ week, odds }: { week: number; odds: Li
           <div>
             {odds!.map((m) => (
               <div key={m.matchupId} className="matchup">
-                <Side side={m.teamA} isFavorite={m.teamA.winProb >= m.teamB.winProb} align="left" />
+                <Side side={m.teamA} align="left" />
                 <div style={{ textAlign: "center" }}>
                   <div className="score tnum">
                     {m.teamA.actualPoints.toFixed(1)} &ndash; {m.teamB.actualPoints.toFixed(1)}
@@ -60,7 +58,7 @@ export default function LiveOddsSection({ week, odds }: { week: number; odds: Li
                     proj {m.teamA.projectedFinal.toFixed(1)} &ndash; {m.teamB.projectedFinal.toFixed(1)}
                   </div>
                 </div>
-                <Side side={m.teamB} isFavorite={m.teamB.winProb > m.teamA.winProb} align="right" />
+                <Side side={m.teamB} align="right" />
               </div>
             ))}
           </div>
