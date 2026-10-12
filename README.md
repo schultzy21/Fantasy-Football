@@ -42,9 +42,11 @@ You already created a Supabase project. Now it needs one table:
 3. Open the file `supabase/schema.sql` in this repo, copy all of it, paste it into
    the SQL editor, and click **Run**.
 
-That creates a `generated_content` table -- a cache for the AI write-ups. The
-script is safe to re-run any time (e.g. after this update) if you already ran an
-earlier version of it.
+That creates a `generated_content` table (a cache for the AI write-ups) and an
+`injury_events` table (the daily injury-tracking log -- see "Injury tracking"
+below). The script is safe to re-run any time (e.g. after this update) if you
+already ran an earlier version of it -- re-run it now if you're updating an
+existing deployment, so the new table exists before the injury cron runs.
 
 ### 2. Connect the repo to Vercel
 
@@ -160,6 +162,32 @@ All three are clearly labeled "Preseason Projection" while this is active, and
 switch over to real results automatically once Week 1 finishes -- no action
 needed. It's a fun guess, not a forecast -- treat it that way.
 
+## How injury tracking works
+
+Sleeper's public API only exposes a player's *current* injury status, not a
+history of it, so the Injury Report section is built two different ways
+depending on the week:
+
+- **Going forward**, a Vercel Cron job runs once a day
+  (`app/api/cron/injuries`), checks every currently-rostered player, and logs
+  anyone who's Out or IR to the `injury_events` Supabase table -- one row per
+  player per week, upgraded in place if their status changes later that week
+  (e.g. Out -> IR). This needs no setup beyond the Supabase table from step 1;
+  Vercel picks up the schedule from `vercel.json` automatically on deploy.
+- **Weeks before this feature existed** are instead approximated live from
+  Sleeper's own historical data (who started that week, who recorded no
+  stats while their own NFL team clearly played) -- labeled "approx." in the
+  dropdown, since it can't see real injury designations for the past, only
+  infer them. The exact cutoff week is hardcoded in
+  `lib/league-data.ts` (`INJURY_BACKFILL_THROUGH_WEEK`) and only matters for
+  the season this shipped in -- a future season has no gap to backfill since
+  the cron covers it from day one.
+
+Optional: lock down the cron endpoint the same way as any Vercel Cron route --
+set `CRON_SECRET` to any random string in Vercel's Environment Variables, and
+Vercel will send it automatically. Low stakes if you skip it; the endpoint
+only reads public Sleeper data and logs to a table nothing else depends on.
+
 ## Adding past champions by hand
 
 Your league's Sleeper history already goes back to 2024 automatically (via Sleeper's
@@ -173,12 +201,14 @@ push the change to GitHub.
 ## What's in this repo
 
 ```
-app/                       The page and the optional /api/generate route (needs
-                            an Anthropic key) for AI-written commentary
+app/                       The page, the optional /api/generate route (needs
+                            an Anthropic key) for AI-written commentary, and
+                            the daily /api/cron/injuries tracking job
 components/                UI pieces for each section of the page
 lib/                       Sleeper API client, all the stats/ranking/projection
                             math, Supabase and Claude clients
 supabase/schema.sql        Run this in the Supabase SQL editor (see step 1 above)
+vercel.json                Declares the daily injury-tracking schedule to Vercel
 .env.example               Template for the environment variables (copy to
                             .env.local)
 ```
@@ -193,3 +223,11 @@ supabase/schema.sql        Run this in the Supabase SQL editor (see step 1 above
   environment variables are missing from Vercel (or `.env.local` if running
   locally), or `supabase/schema.sql` hasn't been run yet in your project so the
   `generated_content` table doesn't exist -- see step 1/step 2 above.
+- **Injury Report is empty / not growing week to week**: same as above --
+  `supabase/schema.sql` needs to have been (re-)run so the `injury_events`
+  table exists, and the two Supabase environment variables need to be set in
+  Vercel. To trigger a check manually instead of waiting for the daily cron,
+  visit `https://<your-site>/api/cron/injuries` in a browser, or
+  `curl -X POST https://<your-site>/api/cron/injuries` if you set a
+  `CRON_SECRET` (then add `-H "Authorization: Bearer <your-secret>"`). Safe
+  to run more than once -- it just upgrades that week's status if it changed.

@@ -1,6 +1,8 @@
 import { buildBrief } from "./brief";
 import { computeDraftInsights, type DraftPickInsight } from "./draft-insights";
 import { getLeagueHistory, pairMatchupsIntoGames, type HeadToHeadGame, type LeagueRecords, type SeasonSummary } from "./history";
+import { computeBackfillInjuryEvents } from "./injury-backfill";
+import { buildInjuryLeaderboard, fetchLoggedInjuryEvents, type RosterInjuryEntry } from "./injuries";
 import { computeLiveOdds, type LiveOddsMatchup } from "./live-odds";
 import { computePositionStrength, type PositionStrength } from "./positions";
 import { computePowerRankings, type PowerRank } from "./power-rankings";
@@ -42,11 +44,18 @@ export type LeagueData = {
   headToHeadGames: HeadToHeadGame[];
   playerValues: PlayerValue[];
   liveOdds: LiveOddsMatchup[] | null;
+  injuryLeaderboard: RosterInjuryEntry[];
   brief: string;
 };
 
 const DEFAULT_REGULAR_SEASON_WEEKS = 14;
 const MAX_WEEKS = 18;
+
+// Injury tracking (see lib/injuries.ts) switched from live daily snapshots
+// starting this week of this season -- everything before that is instead
+// approximated from Sleeper's historical data (lib/injury-backfill.ts).
+// A future season has no gap to backfill (the cron covers it from day one).
+const INJURY_BACKFILL_THROUGH_WEEK: Record<string, number> = { "2026": 4 };
 
 export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   const [league, state, users, rosters] = await Promise.all([
@@ -177,6 +186,22 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     state.week,
   ).catch(() => ({}) as Record<string, DraftPickInsight>);
 
+  const backfillThroughWeek = INJURY_BACKFILL_THROUGH_WEEK[league.season] ?? 0;
+  const backfillWeekNumbers = Array.from({ length: backfillThroughWeek }, (_, i) => i + 1);
+  const backfillWeeklyStats = await Promise.all(
+    backfillWeekNumbers.map((w) => sleeper.getStats(league.season, w).catch(() => ({}))),
+  );
+  const backfillInjuryEvents = computeBackfillInjuryEvents(
+    league.season,
+    teamsByRoster,
+    weeklyMatchups,
+    backfillWeeklyStats,
+    players,
+    backfillThroughWeek,
+  );
+  const loggedInjuryEvents = await fetchLoggedInjuryEvents(league.season);
+  const injuryLeaderboard = buildInjuryLeaderboard(backfillInjuryEvents, loggedInjuryEvents, teams);
+
   const brief = buildBrief({
     leagueName: LEAGUE_DISPLAY_NAME,
     season: league.season,
@@ -211,6 +236,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     headToHeadGames,
     playerValues,
     liveOdds,
+    injuryLeaderboard,
     brief,
   };
 }

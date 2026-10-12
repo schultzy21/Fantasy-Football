@@ -111,6 +111,10 @@ export type SleeperPlayer = {
   team?: string | null;
   fantasy_positions?: string[] | null;
   injury_status?: string | null; // "Questionable" | "Doubtful" | "Out" | "IR" | ...
+  // Sparse, Sleeper-internal per-week overrides -- when present, a
+  // historically reliable record of that week's injury designation (see
+  // lib/injury-backfill.ts). Key shape: `injury_override_{season_type}_{season}_{week}`.
+  metadata?: Record<string, string> | null;
 };
 
 export type PlayersMap = Record<string, SleeperPlayer>;

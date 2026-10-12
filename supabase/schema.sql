@@ -36,3 +36,36 @@ create policy "Public can write generated content" on generated_content
 drop policy if exists "Public can update generated content" on generated_content;
 create policy "Public can update generated content" on generated_content
   for update using (true) with check (true);
+
+-- Injury tracking: a daily cron (see app/api/cron/injuries) snapshots every
+-- currently-rostered player who's Out/IR, once per player per week (the
+-- unique constraint below lets a later run upgrade that week's status, e.g.
+-- Out -> IR, without creating a second row). Weeks before this feature
+-- existed aren't stored here at all -- those are instead computed live from
+-- Sleeper's own historical data (see lib/injury-backfill.ts), so there's
+-- nothing to backfill by hand.
+create table if not exists injury_events (
+  id bigserial primary key,
+  season text not null,
+  week integer not null,
+  player_id text not null,
+  player_name text not null,
+  roster_id integer not null,
+  status text not null,
+  recorded_at timestamptz not null default now(),
+  unique (season, week, player_id, roster_id)
+);
+
+alter table injury_events enable row level security;
+
+drop policy if exists "Public can read injury events" on injury_events;
+create policy "Public can read injury events" on injury_events
+  for select using (true);
+
+drop policy if exists "Public can write injury events" on injury_events;
+create policy "Public can write injury events" on injury_events
+  for insert with check (true);
+
+drop policy if exists "Public can update injury events" on injury_events;
+create policy "Public can update injury events" on injury_events
+  for update using (true) with check (true);

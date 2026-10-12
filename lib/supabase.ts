@@ -23,3 +23,13 @@ export type GeneratedContentRow = {
   newsletter_article: string | null;
   generated_at: string;
 };
+
+export type InjuryEventRow = {
+  season: string;
+  week: number;
+  player_id: string;
+  player_name: string;
+  roster_id: number;
+  status: string;
+  recorded_at: string;
+};
