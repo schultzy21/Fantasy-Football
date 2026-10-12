@@ -1,5 +1,5 @@
 import type { Team } from "./standings";
-import type { PlayersMap, SleeperMatchup, WeeklyStatsMap } from "./types";
+import type { PlayersMap, SleeperTransaction, WeeklyStatsMap } from "./types";
 
 export type BackfillInjuryEvent = {
   season: string;
@@ -21,51 +21,95 @@ function playerNameFor(playerId: string, players: PlayersMap): string {
   return players[playerId]?.full_name ?? playerId;
 }
 
+// Reconstructs each roster's full player set -- starters, bench, and IR
+// slot all together, since Sleeper's roster.players (what Team.players
+// comes from) already includes all three -- as of the end of every week
+// from 1 to throughWeek. Works backward from today's actual roster,
+// undoing this league's real transactions in reverse chronological order.
+// This is an exact reconstruction, not a guess: it only uses real
+// adds/drops/trades that actually happened.
+function reconstructRosterHistory(
+  teams: Team[],
+  weeklyTransactions: SleeperTransaction[][], // index 0 = week 1
+  throughWeek: number,
+): Map<number, Map<number, Set<string>>> {
+  // rosterId -> week -> player set as of the end of that week
+  const history = new Map<number, Map<number, Set<string>>>();
+
+  for (const team of teams) {
+    const rosterId = team.rosterId;
+    const set = new Set(team.players);
+    const weekSnapshots = new Map<number, Set<string>>();
+
+    for (let week = weeklyTransactions.length; week >= 1; week--) {
+      const weekTxns = (weeklyTransactions[week - 1] ?? [])
+        .filter((t) => t.status === "complete" && t.roster_ids.includes(rosterId))
+        .sort((a, b) => b.created - a.created);
+
+      for (const t of weekTxns) {
+        for (const [pid, rid] of Object.entries(t.adds ?? {})) {
+          if (rid === rosterId) set.delete(pid); // undo: they weren't there yet
+        }
+        for (const [pid, rid] of Object.entries(t.drops ?? {})) {
+          if (rid === rosterId) set.add(pid); // undo: they hadn't been dropped yet
+        }
+      }
+
+      const snapshotWeek = week - 1;
+      if (snapshotWeek >= 1 && snapshotWeek <= throughWeek) {
+        weekSnapshots.set(snapshotWeek, new Set(set));
+      }
+    }
+
+    history.set(rosterId, weekSnapshots);
+  }
+
+  return history;
+}
+
 // Best-effort reconstruction of "games missed due to injury" for weeks
 // before this feature existed -- Sleeper's API only exposes injury status
-// live, not historically. Two signals, in priority order:
+// live, not historically. Checks every player on the full historical
+// roster (starters, bench, IR slot), using two signals in priority order:
 //  1. A sparse but reliable per-week override Sleeper stores on some
 //     players (metadata.injury_override_regular_<season>_<week>) -- when
 //     present, trust it outright.
-//  2. Otherwise, infer: the player was in that week's STARTING lineup (the
-//     one piece of historical roster data this API actually gives us),
-//     recorded no stats that week, while their own NFL team clearly did
-//     play (at least one teammate recorded stats that week) -- which rules
-//     out bye weeks.
-// Only starters are checked, not full benches, since per-week starting
-// lineups are the one accurate historical roster signal available; a
-// bench-stashed injury in a past week is not recoverable from this API and
-// is undercounted here by design (labeled "approximate" in the UI).
+//  2. Otherwise, infer: the player recorded no stats that week, while
+//     their own NFL team clearly did play (at least one teammate recorded
+//     stats that week) -- which rules out bye weeks. This can also flag a
+//     healthy player who simply didn't see the field (e.g. buried on a
+//     depth chart), so it's labeled "approximate" in the UI, not fact.
 export function computeBackfillInjuryEvents(
   season: string,
-  teamsByRoster: Map<number, Team>,
-  weeklyMatchups: SleeperMatchup[][], // index 0 = week 1
-  weeklyStats: WeeklyStatsMap[], // same indexing, same length
+  teams: Team[],
+  weeklyTransactions: SleeperTransaction[][], // index 0 = week 1
+  weeklyStats: WeeklyStatsMap[], // index 0 = week 1
   players: PlayersMap,
   throughWeek: number,
 ): BackfillInjuryEvent[] {
   const events: BackfillInjuryEvent[] = [];
+  if (throughWeek <= 0) return events;
+
+  const rosterHistory = reconstructRosterHistory(teams, weeklyTransactions, throughWeek);
 
   for (let week = 1; week <= throughWeek; week++) {
-    const matchups = weeklyMatchups[week - 1] ?? [];
     const stats = weeklyStats[week - 1] ?? {};
-    if (matchups.length === 0) continue;
+    const overrideKey = `injury_override_regular_${season}_${week}`;
 
     const teamsThatPlayed = new Set<string>();
     for (const [pid, line] of Object.entries(stats)) {
       if ((line.gp ?? 0) > 0) {
-        const team = players[pid]?.team;
-        if (team) teamsThatPlayed.add(team);
+        const nflTeam = players[pid]?.team;
+        if (nflTeam) teamsThatPlayed.add(nflTeam);
       }
     }
 
-    const overrideKey = `injury_override_regular_${season}_${week}`;
+    for (const team of teams) {
+      const rosterPlayers = rosterHistory.get(team.rosterId)?.get(week);
+      if (!rosterPlayers) continue;
 
-    for (const m of matchups) {
-      if (!teamsByRoster.has(m.roster_id)) continue;
-      const starters = (m.starters ?? []).filter((id) => id && id !== "0" && !isDefId(id));
-
-      for (const playerId of starters) {
+      for (const playerId of rosterPlayers) {
+        if (isDefId(playerId)) continue;
         const meta = players[playerId];
         const override = meta?.metadata?.[overrideKey];
 
@@ -76,14 +120,13 @@ export function computeBackfillInjuryEvents(
             playerId,
             playerName: playerNameFor(playerId, players),
             status: override,
-            rosterId: m.roster_id,
+            rosterId: team.rosterId,
             confirmed: true,
           });
           continue;
         }
 
-        const line = stats[playerId];
-        const played = (line?.gp ?? 0) > 0 || (m.players_points?.[playerId] ?? 0) > 0;
+        const played = (stats[playerId]?.gp ?? 0) > 0;
         const nflTeam = meta?.team;
         const teamPlayed = nflTeam ? teamsThatPlayed.has(nflTeam) : false;
 
@@ -94,7 +137,7 @@ export function computeBackfillInjuryEvents(
             playerId,
             playerName: playerNameFor(playerId, players),
             status: "Out",
-            rosterId: m.roster_id,
+            rosterId: team.rosterId,
             confirmed: false,
           });
         }

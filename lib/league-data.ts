@@ -193,8 +193,8 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   );
   const backfillInjuryEvents = computeBackfillInjuryEvents(
     league.season,
-    teamsByRoster,
-    weeklyMatchups,
+    teams,
+    weeklyTransactions,
     backfillWeeklyStats,
     players,
     backfillThroughWeek,

@@ -175,13 +175,17 @@ depending on the week:
   (e.g. Out -> IR). This needs no setup beyond the Supabase table from step 1;
   Vercel picks up the schedule from `vercel.json` automatically on deploy.
 - **Weeks before this feature existed** are instead approximated live from
-  Sleeper's own historical data (who started that week, who recorded no
-  stats while their own NFL team clearly played) -- labeled "approx." in the
-  dropdown, since it can't see real injury designations for the past, only
-  infer them. The exact cutoff week is hardcoded in
-  `lib/league-data.ts` (`INJURY_BACKFILL_THROUGH_WEEK`) and only matters for
-  the season this shipped in -- a future season has no gap to backfill since
-  the cron covers it from day one.
+  Sleeper's own historical data. Each team's full roster that week --
+  starters, bench, and IR slot together -- is reconstructed exactly from
+  this league's real transaction history (today's roster, with every
+  add/drop/trade since then undone in reverse order), then every one of
+  those players is checked for whether they recorded any stats that week
+  while their own NFL team clearly played. Labeled "approx." in the
+  dropdown either way, since it can't see real injury designations for the
+  past, only infer them from no-stats-while-team-played. The exact cutoff
+  week is hardcoded in `lib/league-data.ts` (`INJURY_BACKFILL_THROUGH_WEEK`)
+  and only matters for the season this shipped in -- a future season has no
+  gap to backfill since the cron covers it from day one.
 
 Optional: lock down the cron endpoint the same way as any Vercel Cron route --
 set `CRON_SECRET` to any random string in Vercel's Environment Variables, and
