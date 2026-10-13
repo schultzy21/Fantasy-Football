@@ -45,6 +45,7 @@ export type LeagueData = {
   playerValues: PlayerValue[];
   liveOdds: LiveOddsMatchup[] | null;
   injuryLeaderboard: RosterInjuryEntry[];
+  rosterPositions: string[];
   brief: string;
 };
 
@@ -253,6 +254,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     playerValues,
     liveOdds,
     injuryLeaderboard,
+    rosterPositions: league.roster_positions,
     brief,
   };
 }

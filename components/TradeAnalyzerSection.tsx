@@ -2,7 +2,17 @@
 
 import { useMemo, useState } from "react";
 import InjuryPill from "./InjuryPill";
+import { computeOptimalPoints, type LineupCandidate } from "@/lib/lineup-optimizer";
 import type { PlayerValue } from "@/lib/trade-value";
+
+function toLineupCandidate(p: PlayerValue): LineupCandidate {
+  return { playerId: p.playerId, position: p.position, points: p.rosProjPoints };
+}
+
+function formatDelta(delta: number): string {
+  const rounded = Math.round(delta * 10) / 10;
+  return rounded > 0 ? `+${rounded}` : `${rounded}`;
+}
 
 type TeamRef = { rosterId: number; teamName: string };
 
@@ -68,9 +78,11 @@ function TradeSide({
 export default function TradeAnalyzerSection({
   playerValues,
   teams,
+  rosterPositions,
 }: {
   playerValues: PlayerValue[];
   teams: TeamRef[];
+  rosterPositions: string[];
 }) {
   const [query, setQuery] = useState("");
   const [posFilter, setPosFilter] = useState<(typeof POSITIONS)[number]>("ALL");
@@ -110,6 +122,27 @@ export default function TradeAnalyzerSection({
   const totalB = [...selectedB].reduce((sum, id) => sum + (valueById.get(id) ?? 0), 0);
   const hasOffer = selectedA.size > 0 || selectedB.size > 0;
   const diff = totalA - totalB;
+
+  // Projected rest-of-season lineup impact: each team's own optimal-lineup
+  // total, before vs. after swapping the selected players in/out. This is
+  // independent of the 0-100 value score above -- a player who scores 0
+  // there (below replacement league-wide) can still raise a thin team's
+  // own optimal lineup if they're simply better than what that team
+  // currently has at the position.
+  const lineupImpact = useMemo(() => {
+    if (!hasOffer) return null;
+    const incomingToA = rosterBPlayers.filter((p) => selectedB.has(p.playerId));
+    const incomingToB = rosterAPlayers.filter((p) => selectedA.has(p.playerId));
+    const afterAPlayers = [...rosterAPlayers.filter((p) => !selectedA.has(p.playerId)), ...incomingToA];
+    const afterBPlayers = [...rosterBPlayers.filter((p) => !selectedB.has(p.playerId)), ...incomingToB];
+
+    const beforeA = computeOptimalPoints(rosterAPlayers.map(toLineupCandidate), rosterPositions);
+    const afterA = computeOptimalPoints(afterAPlayers.map(toLineupCandidate), rosterPositions);
+    const beforeB = computeOptimalPoints(rosterBPlayers.map(toLineupCandidate), rosterPositions);
+    const afterB = computeOptimalPoints(afterBPlayers.map(toLineupCandidate), rosterPositions);
+
+    return { beforeA, afterA, beforeB, afterB };
+  }, [hasOffer, rosterAPlayers, rosterBPlayers, selectedA, selectedB, rosterPositions]);
 
   return (
     <section id="trade-analyzer" className="view" data-yard="OPP 25">
@@ -238,6 +271,24 @@ export default function TradeAnalyzerSection({
             {diff === 0 && " -- dead even."}
             {diff > 0 && ` -- Side A gets the better end by ${diff}.`}
             {diff < 0 && ` -- Side B gets the better end by ${-diff}.`}
+          </div>
+        )}
+
+        {hasOffer && lineupImpact && (
+          <div className="callout" style={{ marginTop: 10 }}>
+            <div style={{ marginBottom: 4 }}>
+              <b>Projected rest-of-season lineup total</b> (each team&apos;s own best-starting-lineup total, this
+              trade only):
+            </div>
+            Side A: {lineupImpact.beforeA.toFixed(1)} &rarr; {lineupImpact.afterA.toFixed(1)} pts (
+            <b style={{ color: lineupImpact.afterA >= lineupImpact.beforeA ? "var(--turf)" : "var(--flag)" }}>
+              {formatDelta(lineupImpact.afterA - lineupImpact.beforeA)}
+            </b>
+            ) &middot; Side B: {lineupImpact.beforeB.toFixed(1)} &rarr; {lineupImpact.afterB.toFixed(1)} pts (
+            <b style={{ color: lineupImpact.afterB >= lineupImpact.beforeB ? "var(--turf)" : "var(--flag)" }}>
+              {formatDelta(lineupImpact.afterB - lineupImpact.beforeB)}
+            </b>
+            )
           </div>
         )}
       </div>
