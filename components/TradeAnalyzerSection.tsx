@@ -14,6 +14,69 @@ function formatDelta(delta: number): string {
   return rounded > 0 ? `+${rounded}` : `${rounded}`;
 }
 
+type WaiverMatch = { incoming: PlayerValue; alt: PlayerValue | null };
+type WaiverSummary = { matches: WaiverMatch[]; incomingValue: number; altValue: number; gap: number };
+
+// For each incoming player, the best still-available free agent at the same
+// position (greedily, so two incoming players at the same position don't
+// both get matched to the same free agent) -- answers "what could I add for
+// free instead of making this trade?"
+function matchFreeAgents(incoming: PlayerValue[], freeAgentValues: PlayerValue[]): WaiverSummary {
+  const pools = new Map<string, PlayerValue[]>();
+  for (const fa of freeAgentValues) {
+    const arr = pools.get(fa.position) ?? [];
+    arr.push(fa);
+    pools.set(fa.position, arr);
+  }
+  for (const arr of pools.values()) arr.sort((a, b) => b.value - a.value);
+
+  const matches: WaiverMatch[] = [...incoming]
+    .sort((a, b) => b.value - a.value)
+    .map((p) => ({ incoming: p, alt: pools.get(p.position)?.shift() ?? null }));
+
+  const incomingValue = incoming.reduce((sum, p) => sum + p.value, 0);
+  const altValue = matches.reduce((sum, m) => sum + (m.alt?.value ?? 0), 0);
+  return { matches, incomingValue, altValue, gap: incomingValue - altValue };
+}
+
+type Verdict = { label: string; tone: "good" | "bad" | "mixed"; reasons: string[] };
+
+// Transparent, rule-based (not a black box): each of the three signals the
+// user asked for -- lineup points added, net trade value, and the waiver
+// alternative -- casts one vote toward or away from "make the trade."
+function recommend(lineupDelta: number, netValue: number, waiverGap: number): Verdict {
+  let score = 0;
+  const reasons: string[] = [];
+
+  if (lineupDelta > 0.5) {
+    score++;
+    reasons.push(`raises your optimal lineup total by ${Math.round(lineupDelta * 10) / 10} pts`);
+  } else if (lineupDelta < -0.5) {
+    score--;
+    reasons.push(`lowers your optimal lineup total by ${Math.round(-lineupDelta * 10) / 10} pts`);
+  }
+
+  if (netValue > 0) {
+    score++;
+    reasons.push(`nets +${netValue} in trade value`);
+  } else if (netValue < 0) {
+    score--;
+    reasons.push(`nets ${netValue} in trade value`);
+  }
+
+  if (waiverGap > 10) {
+    score++;
+    reasons.push(`beats the best free agent at those spots by ${Math.round(waiverGap)} value`);
+  } else if (waiverGap <= 2) {
+    score--;
+    reasons.push("is barely ahead of what's sitting on waivers right now");
+  }
+
+  const label = score >= 2 ? "Make the trade" : score <= -2 ? "Skip it" : "Toss-up";
+  const tone: Verdict["tone"] = score >= 2 ? "good" : score <= -2 ? "bad" : "mixed";
+  return { label, tone, reasons };
+}
+
 type TeamRef = { rosterId: number; teamName: string };
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"] as const;
@@ -77,10 +140,12 @@ function TradeSide({
 
 export default function TradeAnalyzerSection({
   playerValues,
+  freeAgentValues,
   teams,
   rosterPositions,
 }: {
   playerValues: PlayerValue[];
+  freeAgentValues: PlayerValue[];
   teams: TeamRef[];
   rosterPositions: string[];
 }) {
@@ -118,10 +183,16 @@ export default function TradeAnalyzerSection({
   }
 
   const valueById = useMemo(() => new Map(playerValues.map((p) => [p.playerId, p.value])), [playerValues]);
+  // totalA/totalB are what each side GIVES UP, not what they receive.
   const totalA = [...selectedA].reduce((sum, id) => sum + (valueById.get(id) ?? 0), 0);
   const totalB = [...selectedB].reduce((sum, id) => sum + (valueById.get(id) ?? 0), 0);
   const hasOffer = selectedA.size > 0 || selectedB.size > 0;
-  const diff = totalA - totalB;
+  // Net value TO Side A = what A receives (totalB) minus what A gives up
+  // (totalA). Positive means A comes out ahead.
+  const netValueA = totalB - totalA;
+
+  const incomingToA = useMemo(() => rosterBPlayers.filter((p) => selectedB.has(p.playerId)), [rosterBPlayers, selectedB]);
+  const incomingToB = useMemo(() => rosterAPlayers.filter((p) => selectedA.has(p.playerId)), [rosterAPlayers, selectedA]);
 
   // Projected rest-of-season lineup impact: each team's own optimal-lineup
   // total, before vs. after swapping the selected players in/out. This is
@@ -131,8 +202,6 @@ export default function TradeAnalyzerSection({
   // currently has at the position.
   const lineupImpact = useMemo(() => {
     if (!hasOffer) return null;
-    const incomingToA = rosterBPlayers.filter((p) => selectedB.has(p.playerId));
-    const incomingToB = rosterAPlayers.filter((p) => selectedA.has(p.playerId));
     const afterAPlayers = [...rosterAPlayers.filter((p) => !selectedA.has(p.playerId)), ...incomingToA];
     const afterBPlayers = [...rosterBPlayers.filter((p) => !selectedB.has(p.playerId)), ...incomingToB];
 
@@ -142,7 +211,27 @@ export default function TradeAnalyzerSection({
     const afterB = computeOptimalPoints(afterBPlayers.map(toLineupCandidate), rosterPositions);
 
     return { beforeA, afterA, beforeB, afterB };
-  }, [hasOffer, rosterAPlayers, rosterBPlayers, selectedA, selectedB, rosterPositions]);
+  }, [hasOffer, rosterAPlayers, rosterBPlayers, incomingToA, incomingToB, selectedA, selectedB, rosterPositions]);
+
+  // What each side could add for free off waivers instead, at the same
+  // positions they'd be receiving in this trade -- the "available points on
+  // waivers" half of the final verdict.
+  const waiverImpact = useMemo(() => {
+    if (!hasOffer) return null;
+    return {
+      forA: matchFreeAgents(incomingToA, freeAgentValues),
+      forB: matchFreeAgents(incomingToB, freeAgentValues),
+    };
+  }, [hasOffer, incomingToA, incomingToB, freeAgentValues]);
+
+  const verdictA =
+    lineupImpact && waiverImpact
+      ? recommend(lineupImpact.afterA - lineupImpact.beforeA, netValueA, waiverImpact.forA.gap)
+      : null;
+  const verdictB =
+    lineupImpact && waiverImpact
+      ? recommend(lineupImpact.afterB - lineupImpact.beforeB, -netValueA, waiverImpact.forB.gap)
+      : null;
 
   return (
     <section id="trade-analyzer" className="view" data-yard="OPP 25">
@@ -266,11 +355,11 @@ export default function TradeAnalyzerSection({
         </div>
 
         {hasOffer && (
-          <div className={`callout ${diff === 0 ? "" : diff > 0 ? "high" : "low"}`} style={{ marginTop: 14 }}>
-            Side A: <b>{totalA}</b> total value &middot; Side B: <b>{totalB}</b> total value
-            {diff === 0 && " -- dead even."}
-            {diff > 0 && ` -- Side A gets the better end by ${diff}.`}
-            {diff < 0 && ` -- Side B gets the better end by ${-diff}.`}
+          <div className={`callout ${netValueA === 0 ? "" : netValueA > 0 ? "high" : "low"}`} style={{ marginTop: 14 }}>
+            Side A gives up <b>{totalA}</b> value, receives <b>{totalB}</b> value
+            {netValueA === 0 && " -- dead even."}
+            {netValueA > 0 && ` -- Side A gets the better end by ${netValueA}.`}
+            {netValueA < 0 && ` -- Side B gets the better end by ${-netValueA}.`}
           </div>
         )}
 
@@ -289,6 +378,46 @@ export default function TradeAnalyzerSection({
               {formatDelta(lineupImpact.afterB - lineupImpact.beforeB)}
             </b>
             )
+          </div>
+        )}
+
+        {hasOffer && waiverImpact && (waiverImpact.forA.matches.length > 0 || waiverImpact.forB.matches.length > 0) && (
+          <div className="callout" style={{ marginTop: 10 }}>
+            <div style={{ marginBottom: 4 }}>
+              <b>What&apos;s on waivers instead</b> (best free agent at each incoming player&apos;s position, right
+              now):
+            </div>
+            {waiverImpact.forA.matches.length > 0 && (
+              <div style={{ marginBottom: waiverImpact.forB.matches.length > 0 ? 6 : 0 }}>
+                Side A would receive {waiverImpact.forA.incomingValue} value ({waiverImpact.forA.matches
+                  .map((m) => m.incoming.name)
+                  .join(", ")}) vs. <b>{waiverImpact.forA.altValue}</b> value sitting free right now (
+                {waiverImpact.forA.matches.map((m) => m.alt?.name ?? "nobody at that position").join(", ")}) --
+                trading gets Side A <b>{formatDelta(waiverImpact.forA.gap)}</b> more than waivers would.
+              </div>
+            )}
+            {waiverImpact.forB.matches.length > 0 && (
+              <div>
+                Side B would receive {waiverImpact.forB.incomingValue} value ({waiverImpact.forB.matches
+                  .map((m) => m.incoming.name)
+                  .join(", ")}) vs. <b>{waiverImpact.forB.altValue}</b> value sitting free right now (
+                {waiverImpact.forB.matches.map((m) => m.alt?.name ?? "nobody at that position").join(", ")}) --
+                trading gets Side B <b>{formatDelta(waiverImpact.forB.gap)}</b> more than waivers would.
+              </div>
+            )}
+          </div>
+        )}
+
+        {hasOffer && verdictA && verdictB && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+            <div className={`callout ${verdictA.tone === "good" ? "high" : verdictA.tone === "bad" ? "low" : ""}`}>
+              <b>Side A: {verdictA.label}</b>
+              {verdictA.reasons.length > 0 && <div style={{ marginTop: 4, fontSize: 13 }}>{verdictA.reasons.join("; ")}.</div>}
+            </div>
+            <div className={`callout ${verdictB.tone === "good" ? "high" : verdictB.tone === "bad" ? "low" : ""}`}>
+              <b>Side B: {verdictB.label}</b>
+              {verdictB.reasons.length > 0 && <div style={{ marginTop: 4, fontSize: 13 }}>{verdictB.reasons.join("; ")}.</div>}
+            </div>
           </div>
         )}
       </div>

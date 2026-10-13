@@ -43,6 +43,7 @@ export type LeagueData = {
   transactionSummaries: TeamTransactionSummary[];
   headToHeadGames: HeadToHeadGame[];
   playerValues: PlayerValue[];
+  freeAgentValues: PlayerValue[];
   liveOdds: LiveOddsMatchup[] | null;
   injuryLeaderboard: RosterInjuryEntry[];
   rosterPositions: string[];
@@ -210,14 +211,14 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     }
   }
 
-  const playerValues = await computePlayerValues(
+  const { rostered: playerValues, freeAgents: freeAgentValues } = await computePlayerValues(
     league,
     teams,
     state.week,
     state.previous_season || null,
     players,
     missedGamesByPlayer,
-  ).catch(() => [] as PlayerValue[]);
+  ).catch(() => ({ rostered: [] as PlayerValue[], freeAgents: [] as PlayerValue[] }));
 
   const brief = buildBrief({
     leagueName: LEAGUE_DISPLAY_NAME,
@@ -252,6 +253,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     transactionSummaries,
     headToHeadGames,
     playerValues,
+    freeAgentValues,
     liveOdds,
     injuryLeaderboard,
     rosterPositions: league.roster_positions,

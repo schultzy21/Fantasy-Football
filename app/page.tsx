@@ -111,6 +111,7 @@ export default async function Home() {
 
       <TradeAnalyzerSection
         playerValues={data.playerValues}
+        freeAgentValues={data.freeAgentValues}
         teams={data.standings.map((t) => ({ rosterId: t.rosterId, teamName: t.teamName }))}
         rosterPositions={data.rosterPositions}
       />

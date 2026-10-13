@@ -9,7 +9,7 @@ export type PlayerValue = {
   position: string;
   nflTeam: string | null;
   injuryStatus: string | null;
-  rosterId: number;
+  rosterId: number | null; // null = unrostered free agent
   ownerTeamName: string;
   rosProjPoints: number; // rest-of-season, scored to this league's exact settings, playoff weeks weighted
   snapShare: number | null; // most recent game with snap data, 0-1
@@ -21,6 +21,11 @@ export type PlayerValue = {
 };
 
 const SCORED_POSITIONS = new Set(["QB", "RB", "WR", "TE", "K", "DEF"]);
+// Free agents are scored on the exact same 0-100 scale as rostered players
+// (see below), bounded to a realistically-relevant pool via Sleeper's own
+// relevance ranking -- DEF isn't included since Sleeper's player objects
+// don't carry a usable search_rank for team defenses.
+const FREE_AGENT_SEARCH_RANK_MAX = 500;
 const LAST_WEEK_OF_SEASON = 17;
 const SNAP_TREND_WEEKS = 4;
 const SNAP_TREND_THRESHOLD = 0.05;
@@ -96,7 +101,7 @@ export async function computePlayerValues(
   previousSeason: string | null,
   players: PlayersMap,
   missedGamesByPlayer: Map<string, number>,
-): Promise<PlayerValue[]> {
+): Promise<{ rostered: PlayerValue[]; freeAgents: PlayerValue[] }> {
   const season = league.season;
   const playoffWeekStart = league.settings.playoff_week_start ?? LAST_WEEK_OF_SEASON + 1;
   const remainingWeeks = Array.from(
@@ -123,18 +128,20 @@ export async function computePlayerValues(
   }
   const teamsByRoster = new Map(teams.map((t) => [t.rosterId, t]));
   const scoring = league.scoring_settings;
-
-  const rows: PlayerValue[] = [];
   const trendModifierByPlayer = new Map<string, number>();
 
-  for (const [playerId, rosterId] of rosterIdByPlayer) {
+  // Builds everything about a player that doesn't depend on league-wide
+  // replacement level (which needs every rostered player built first) --
+  // shared by both rostered players and free-agent candidates below so the
+  // two are scored from identical inputs.
+  function buildRow(playerId: string, rosterId: number | null, ownerTeamName: string): PlayerValue | null {
     const meta = players[playerId];
     const position = meta?.position ?? meta?.fantasy_positions?.[0] ?? null;
     // DEF has no player metadata entry -- its "player_id" is the team code.
     const isDef = /^[A-Z]{2,4}$/.test(playerId) && !meta;
-    if (!isDef && !meta) continue;
+    if (!isDef && !meta) return null;
     const resolvedPosition = isDef ? "DEF" : position;
-    if (!resolvedPosition || !SCORED_POSITIONS.has(resolvedPosition)) continue;
+    if (!resolvedPosition || !SCORED_POSITIONS.has(resolvedPosition)) return null;
 
     let rosProjPoints = 0;
     let rawProjSum = 0;
@@ -196,14 +203,14 @@ export async function computePlayerValues(
     const cv = coefficientOfVariation(allSeasonActualPoints);
     const consistency: PlayerValue["consistency"] = cv == null ? null : cv >= BOOM_BUST_CV_THRESHOLD ? "boom-bust" : "steady";
 
-    rows.push({
+    return {
       playerId,
       name: isDef ? `${playerId} D/ST` : meta!.full_name ?? `${meta!.first_name ?? ""} ${meta!.last_name ?? ""}`.trim(),
       position: resolvedPosition,
       nflTeam: isDef ? playerId : meta!.team ?? null,
       injuryStatus: isDef ? null : meta!.injury_status ?? null,
       rosterId,
-      ownerTeamName: teamsByRoster.get(rosterId)?.teamName ?? "Unknown",
+      ownerTeamName,
       rosProjPoints,
       snapShare,
       snapShareTrend,
@@ -211,7 +218,13 @@ export async function computePlayerValues(
       consistency,
       missedGamesThisSeason: missedGamesByPlayer.get(playerId) ?? 0,
       value: 0,
-    });
+    };
+  }
+
+  const rows: PlayerValue[] = [];
+  for (const [playerId, rosterId] of rosterIdByPlayer) {
+    const row = buildRow(playerId, rosterId, teamsByRoster.get(rosterId)?.teamName ?? "Unknown");
+    if (row) rows.push(row);
   }
 
   // Replacement rank per position = this league's own starter demand.
@@ -232,18 +245,24 @@ export async function computePlayerValues(
     byPosition.set(r.position, arr);
   }
 
+  // Replacement level and the VORP ceiling (maxVorp) are both derived from
+  // ROSTERED players only -- free agents below reuse these same two values
+  // rather than being folded into their computation, so adding free agents
+  // to the pool can never change a single rostered player's score.
+  const replacementPointsByPosition = new Map<string, number>();
   const vorpByPlayer = new Map<string, number>();
   for (const [pos, list] of byPosition) {
     const sorted = [...list].sort((a, b) => b.rosProjPoints - a.rosProjPoints);
     const rank = replacementRank[pos] ?? sorted.length;
     const replacementPoints = sorted[Math.min(rank, sorted.length - 1)]?.rosProjPoints ?? 0;
+    replacementPointsByPosition.set(pos, replacementPoints);
     for (const r of sorted) vorpByPlayer.set(r.playerId, r.rosProjPoints - replacementPoints);
   }
 
   const maxVorp = Math.max(1, ...Array.from(vorpByPlayer.values()));
-  for (const r of rows) {
-    const vorp = Math.max(0, vorpByPlayer.get(r.playerId) ?? 0);
-    let score = 100 * Math.sqrt(vorp / maxVorp);
+
+  function scoreRow(r: PlayerValue, vorp: number) {
+    let score = 100 * Math.sqrt(Math.max(0, vorp) / maxVorp);
     if (r.snapShareTrend === "up") score *= 1.05;
     if (r.snapShareTrend === "down") score *= 0.95;
     score *= trendModifierByPlayer.get(r.playerId) ?? 1;
@@ -252,5 +271,32 @@ export async function computePlayerValues(
     r.value = Math.round(Math.min(100, Math.max(0, score)));
   }
 
-  return rows.sort((a, b) => b.value - a.value);
+  for (const r of rows) scoreRow(r, vorpByPlayer.get(r.playerId) ?? 0);
+
+  // Free-agent candidate pool: unrostered, active, non-DEF skill players
+  // within a realistically-relevant range of Sleeper's own fame/relevance
+  // ranking (search_rank) -- scored on the identical VORP scale above, so
+  // "what's on waivers" is directly comparable to rostered player values.
+  const freeAgentRows: PlayerValue[] = [];
+  for (const [playerId, meta] of Object.entries(players)) {
+    if (rosterIdByPlayer.has(playerId)) continue;
+    // Sleeper keeps stale "Active" rows (with a real search_rank) for
+    // long-retired players -- a real NFL-roster spot is what separates an
+    // actual waiver-wire pickup from that data debris.
+    if (meta.status !== "Active" || !meta.team) continue;
+    const position = meta.position ?? meta.fantasy_positions?.[0] ?? null;
+    if (!position || position === "DEF" || !SCORED_POSITIONS.has(position)) continue;
+    if (typeof meta.search_rank !== "number" || meta.search_rank >= FREE_AGENT_SEARCH_RANK_MAX) continue;
+
+    const row = buildRow(playerId, null, "Free Agent");
+    if (!row) continue;
+    const replacementPoints = replacementPointsByPosition.get(row.position) ?? 0;
+    scoreRow(row, row.rosProjPoints - replacementPoints);
+    freeAgentRows.push(row);
+  }
+
+  return {
+    rostered: rows.sort((a, b) => b.value - a.value),
+    freeAgents: freeAgentRows.sort((a, b) => b.value - a.value),
+  };
 }
