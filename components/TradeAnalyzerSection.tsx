@@ -118,8 +118,10 @@ export default function TradeAnalyzerSection({
         <h2 className="sec">Trade Analyzer</h2>
         <p className="lead">
           Value score (0-100) for every rostered player, built from this league&apos;s own data: rest-of-season
-          projected points scored to this league&apos;s exact settings, value over replacement for this
-          league&apos;s roster format (starters + FLEX), and a small bump for recent snap-share trend.
+          projected points (scored to this league&apos;s exact settings, with this league&apos;s fantasy playoff
+          weeks weighted 1.5x), value over replacement for this league&apos;s roster format (starters + FLEX),
+          plus small adjustments for recent snap-share trend, recent actual output vs. projection, and games
+          already missed to injury this season.
         </p>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
@@ -155,6 +157,7 @@ export default function TradeAnalyzerSection({
                 <th>Fantasy Owner</th>
                 <th className="num">ROS Pts</th>
                 <th className="num">Snap%</th>
+                <th className="num">Missed</th>
               </tr>
             </thead>
             <tbody>
@@ -167,19 +170,30 @@ export default function TradeAnalyzerSection({
                     {p.name}
                     <InjuryPill status={p.injuryStatus} />
                   </td>
-                  <td className="muted">{p.position}</td>
+                  <td className="muted">
+                    {p.position}
+                    {p.consistency === "boom-bust" && (
+                      <span className="pill bubble" style={{ marginLeft: 6 }}>
+                        Boom/Bust
+                      </span>
+                    )}
+                  </td>
                   <td className="muted">{p.nflTeam ?? "-"}</td>
                   <td className="muted">{p.ownerTeamName}</td>
-                  <td className="num tnum">{p.rosProjPoints.toFixed(1)}</td>
+                  <td className="num tnum">
+                    {p.rosProjPoints.toFixed(1)}
+                    <TrendArrow trend={p.recentPpgTrend} />
+                  </td>
                   <td className="num tnum">
                     {p.snapShare != null ? `${Math.round(p.snapShare * 100)}%` : "-"}
                     <TrendArrow trend={p.snapShareTrend} />
                   </td>
+                  <td className="num tnum">{p.missedGamesThisSeason || "-"}</td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="muted">
+                  <td colSpan={8} className="muted">
                     No players match.
                   </td>
                 </tr>

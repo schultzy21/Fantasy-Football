@@ -169,8 +169,6 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   const players = await sleeper.getPlayers();
   const transactionSummaries = computeTransactionSummaries(weeklyTransactions.flat(), teamsByRoster, players);
 
-  const playerValues = await computePlayerValues(league, teams, state.week, players).catch(() => [] as PlayerValue[]);
-
   // The live scoreboard/odds for whichever week is currently being played
   // -- fetched directly rather than indexed out of weeklyMatchups above,
   // since that array stops at the end of the regular season and the
@@ -201,6 +199,24 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   );
   const loggedInjuryEvents = await fetchLoggedInjuryEvents(league.season);
   const injuryLeaderboard = buildInjuryLeaderboard(backfillInjuryEvents, loggedInjuryEvents, teams);
+
+  // Feeds the trade analyzer's injury-risk discount below: how many games
+  // (this season) has each player already missed while rostered.
+  const missedGamesByPlayer = new Map<string, number>();
+  for (const entry of injuryLeaderboard) {
+    for (const e of entry.events) {
+      missedGamesByPlayer.set(e.playerId, (missedGamesByPlayer.get(e.playerId) ?? 0) + 1);
+    }
+  }
+
+  const playerValues = await computePlayerValues(
+    league,
+    teams,
+    state.week,
+    state.previous_season || null,
+    players,
+    missedGamesByPlayer,
+  ).catch(() => [] as PlayerValue[]);
 
   const brief = buildBrief({
     leagueName: LEAGUE_DISPLAY_NAME,
