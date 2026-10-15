@@ -4,6 +4,8 @@ import { getLeagueHistory, pairMatchupsIntoGames, type HeadToHeadGame, type Leag
 import { computeBackfillInjuryEvents } from "./injury-backfill";
 import { buildInjuryLeaderboard, fetchLoggedInjuryEvents, type RosterInjuryEntry } from "./injuries";
 import { computeLiveOdds, type LiveOddsMatchup } from "./live-odds";
+import { computeLuckTable, type LuckEntry } from "./luck";
+import { simulatePlayoffOdds, type PlayoffOddsEntry } from "./playoff-odds";
 import { computePositionStrength, type PositionStrength } from "./positions";
 import { computePowerRankings, type PowerRank } from "./power-rankings";
 import { computePredictions, type PredictionsOutlook } from "./predictions";
@@ -14,6 +16,7 @@ import {
 } from "./preseason";
 import { buildLatestCompletedRecap, type WeeklyRecap } from "./recap";
 import { computeRankingsHistory, type RankingsHistoryPoint } from "./rankings-history";
+import { buildScoreRecordEntries, topAndBottom, type ScoreRecordEntry } from "./score-records";
 import * as sleeper from "./sleeper";
 import { buildTeams, sortByStandings, type Team } from "./standings";
 import { computeTransactionSummaries, type TeamTransactionSummary } from "./transactions";
@@ -47,6 +50,9 @@ export type LeagueData = {
   liveOdds: LiveOddsMatchup[] | null;
   injuryLeaderboard: RosterInjuryEntry[];
   rosterPositions: string[];
+  scoreRecords: { highest: ScoreRecordEntry[]; lowest: ScoreRecordEntry[] };
+  luckTable: LuckEntry[];
+  playoffOdds: PlayoffOddsEntry[];
   brief: string;
 };
 
@@ -71,10 +77,8 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   const standings = sortByStandings(teams);
   const teamsByRoster = new Map(teams.map((t) => [t.rosterId, t]));
 
-  const lastRegularWeek = Math.min(
-    (league.settings.playoff_week_start ?? DEFAULT_REGULAR_SEASON_WEEKS + 1) - 1,
-    MAX_WEEKS,
-  );
+  const playoffWeekStart = league.settings.playoff_week_start ?? DEFAULT_REGULAR_SEASON_WEEKS + 1;
+  const lastRegularWeek = Math.min(playoffWeekStart - 1, MAX_WEEKS);
   const weekNumbers = Array.from({ length: Math.max(lastRegularWeek, 1) }, (_, i) => i + 1);
   const weeklyMatchups: SleeperMatchup[][] = await Promise.all(
     weekNumbers.map((w) => sleeper.getMatchups(leagueId, w).catch(() => [] as SleeperMatchup[])),
@@ -149,9 +153,16 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
       : undefined;
   const rankingsHistory = computeRankingsHistory(teams, weeklyMatchups, preseasonRanksForHistory);
 
+  const players = await sleeper.getPlayers();
+
   const history = league.previous_league_id
-    ? await getLeagueHistory(league).catch(() => ({ seasons: [], records: { highestSingleWeekScore: null }, games: [] }))
-    : { seasons: [], records: { highestSingleWeekScore: null }, games: [] };
+    ? await getLeagueHistory(league).catch(() => ({
+        seasons: [],
+        records: { highestSingleWeekScore: null },
+        games: [],
+        scoreRecordEntries: [] as ScoreRecordEntry[],
+      }))
+    : { seasons: [], records: { highestSingleWeekScore: null }, games: [], scoreRecordEntries: [] as ScoreRecordEntry[] };
 
   // This season's games, by the same pairing logic used for past seasons,
   // so head-to-head records span every year this league has played.
@@ -161,6 +172,36 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   );
   const headToHeadGames = [...currentSeasonGames, ...history.games];
 
+  // All-time single-week high/low scores: this season's full schedule
+  // (regular season + playoff weeks, once played) plus every past season's,
+  // skipping playoff-week scores from teams that didn't make that season's
+  // bracket (see lib/score-records.ts -- those are usually unset lineups).
+  const playoffWeekNumbers = Array.from(
+    { length: Math.max(MAX_WEEKS - lastRegularWeek, 0) },
+    (_, i) => lastRegularWeek + 1 + i,
+  );
+  const [playoffWeekMatchups, currentWinnersBracket] = await Promise.all([
+    Promise.all(playoffWeekNumbers.map((w) => sleeper.getMatchups(leagueId, w).catch(() => [] as SleeperMatchup[]))),
+    sleeper.getWinnersBracket(leagueId).catch(() => []),
+  ]);
+  const currentSeasonEntries = buildScoreRecordEntries(
+    league.season,
+    [...weeklyMatchups, ...playoffWeekMatchups],
+    playoffWeekStart,
+    currentWinnersBracket,
+    league.roster_positions,
+    teamsByRoster,
+    players,
+  );
+  const scoreRecords = topAndBottom([...currentSeasonEntries, ...history.scoreRecordEntries], 5);
+
+  // Luck (all-play record vs. actual) and simulated playoff odds -- both
+  // need real results to mean anything, so they're empty before Week 1.
+  const luckTable = hasSeasonStarted ? computeLuckTable(teams, weeklyMatchups) : [];
+  const playoffOdds = hasSeasonStarted
+    ? simulatePlayoffOdds(teams, weeklyMatchups, league.settings.playoff_teams ?? 6)
+    : [];
+
   // Transactions can happen before Week 1 kicks off (preseason waiver
   // claims), so this covers every week up to the current one, not just the
   // regular season weeks used for matchups above.
@@ -168,7 +209,6 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   const weeklyTransactions: SleeperTransaction[][] = await Promise.all(
     transactionWeeks.map((w) => sleeper.getTransactions(leagueId, w).catch(() => [] as SleeperTransaction[])),
   );
-  const players = await sleeper.getPlayers();
   const transactionSummaries = computeTransactionSummaries(weeklyTransactions.flat(), teamsByRoster, players);
 
   // The live scoreboard/odds for whichever week is currently being played
@@ -257,6 +297,9 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     liveOdds,
     injuryLeaderboard,
     rosterPositions: league.roster_positions,
+    scoreRecords,
+    luckTable,
+    playoffOdds,
     brief,
   };
 }

@@ -1,6 +1,11 @@
+import { buildScoreRecordEntries, type ScoreRecordEntry } from "./score-records";
 import * as sleeper from "./sleeper";
 import { buildTeams, sortByStandings } from "./standings";
 import type { SleeperLeague, SleeperMatchup } from "./types";
+
+// Mirrors league-data.ts's own default -- used here only as a fallback for
+// old seasons whose settings don't carry playoff_week_start.
+const DEFAULT_PLAYOFF_WEEK_START = 15;
 
 export type SeasonSummary = {
   season: string;
@@ -64,10 +69,13 @@ export async function getLeagueHistory(currentLeague: SleeperLeague): Promise<{
   seasons: SeasonSummary[];
   records: LeagueRecords;
   games: HeadToHeadGame[];
+  scoreRecordEntries: ScoreRecordEntry[];
 }> {
   const seasons: SeasonSummary[] = [];
   const games: HeadToHeadGame[] = [];
+  const scoreRecordEntries: ScoreRecordEntry[] = [];
   let highest: LeagueRecords["highestSingleWeekScore"] = null;
+  const players = await sleeper.getPlayers().catch(() => ({}));
 
   let previousId = currentLeague.previous_league_id;
   let hops = 0;
@@ -137,6 +145,19 @@ export async function getLeagueHistory(currentLeague: SleeperLeague): Promise<{
         }
         games.push(...pairMatchupsIntoGames(week, league.season, weekIndex + 1, ownerIdByRoster));
       });
+
+      const winnersBracket = await sleeper.getWinnersBracket(previousId).catch(() => []);
+      scoreRecordEntries.push(
+        ...buildScoreRecordEntries(
+          league.season,
+          weeks,
+          league.settings.playoff_week_start ?? DEFAULT_PLAYOFF_WEEK_START,
+          winnersBracket,
+          league.roster_positions,
+          teamsByRoster,
+          players,
+        ),
+      );
     } catch {
       // Skip records for this season if matchup fetches fail.
     }
@@ -144,5 +165,5 @@ export async function getLeagueHistory(currentLeague: SleeperLeague): Promise<{
     previousId = league.previous_league_id;
   }
 
-  return { seasons, records: { highestSingleWeekScore: highest }, games };
+  return { seasons, records: { highestSingleWeekScore: highest }, games, scoreRecordEntries };
 }

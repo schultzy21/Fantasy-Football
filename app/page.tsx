@@ -3,6 +3,7 @@ import HeadToHeadSection from "@/components/HeadToHeadSection";
 import HistorySection from "@/components/HistorySection";
 import InjuriesSection from "@/components/InjuriesSection";
 import LiveOddsSection from "@/components/LiveOddsSection";
+import LuckAndOddsSection from "@/components/LuckAndOddsSection";
 import PositionsSection from "@/components/PositionsSection";
 import PowerRankingsSection from "@/components/PowerRankingsSection";
 import PredictionsSection from "@/components/PredictionsSection";
@@ -55,6 +56,7 @@ export default async function Home() {
         <a href="#power">Power Rankings</a>
         <a href="#positions">Positions</a>
         <a href="#predictions">Predictions</a>
+        <a href="#luck">Luck &amp; Odds</a>
         <a href="#head-to-head">Matchup History</a>
         <a href="#trade-analyzer">Trade Analyzer</a>
         <a href="#transactions">Transactions</a>
@@ -77,7 +79,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <HistorySection seasons={data.history.seasons} records={data.history.records} />
+      <HistorySection seasons={data.history.seasons} records={data.history.records} scoreRecords={data.scoreRecords} />
 
       <LiveOddsSection week={data.state.week} odds={data.liveOdds} />
 
@@ -100,6 +102,13 @@ export default async function Home() {
         predictions={data.predictions}
         narrative={generated?.predictions_outlook ?? null}
         isProjected={data.rankingsAreProjected}
+      />
+
+      <LuckAndOddsSection
+        standings={data.standings}
+        luckTable={data.luckTable}
+        playoffOdds={data.playoffOdds}
+        hasSeasonStarted={data.hasSeasonStarted}
       />
 
       <HeadToHeadSection

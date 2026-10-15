@@ -502,6 +502,48 @@ tr:last-child td {
   box-shadow: 0 0 14px rgba(255, 210, 63, 0.25) inset;
 }
 
+/* Collapsible score-record rows (<details>) -- a row of summary info with
+   a lineup breakdown revealed on click, styled to match .matchup. */
+.record-row {
+  border-bottom: 2px dashed var(--line);
+}
+
+.record-row:last-child {
+  border-bottom: none;
+}
+
+.record-row > summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  list-style: none;
+}
+
+.record-row > summary::-webkit-details-marker {
+  display: none;
+}
+
+.record-row > summary::marker {
+  content: "";
+}
+
+.record-row > summary::before {
+  content: "\25B8";
+  color: var(--gold);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.record-row[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.record-row .lineup-wrap {
+  padding: 0 0 12px 30px;
+}
+
 textarea,
 input[type="text"] {
   width: 100%;

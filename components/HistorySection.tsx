@@ -1,12 +1,64 @@
 import { manualHistory } from "@/lib/manual-history";
 import type { LeagueRecords, SeasonSummary } from "@/lib/history";
+import type { ScoreRecordEntry } from "@/lib/score-records";
+
+function ScoreRecordList({ entries, highest }: { entries: ScoreRecordEntry[]; highest: boolean }) {
+  return (
+    <div>
+      <div className="eyebrow" style={{ marginTop: 8 }}>
+        {highest ? "Highest Scores Ever" : "Lowest Scores Ever"}
+      </div>
+      {entries.length === 0 && <p className="muted" style={{ fontSize: 13 }}>Not enough played weeks yet.</p>}
+      {entries.map((entry, i) => (
+        <details key={`${entry.season}-${entry.week}-${entry.teamName}-${i}`} className="record-row">
+          <summary>
+            <span className="badge">{i + 1}</span>
+            <span style={{ flex: 1 }}>
+              {entry.teamName}
+              <span className="muted" style={{ marginLeft: 8, fontSize: 12 }}>
+                {entry.season} Wk {entry.week}
+              </span>
+            </span>
+            <span className="tnum" style={{ fontWeight: 700 }}>
+              {entry.points.toFixed(1)}
+            </span>
+          </summary>
+          {entry.lineup.length > 0 && (
+            <div className="lineup-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Pos</th>
+                    <th>Player</th>
+                    <th className="num">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entry.lineup.map((slot, j) => (
+                    <tr key={`${slot.playerId}-${j}`}>
+                      <td className="muted">{slot.position}</td>
+                      <td>{slot.playerName}</td>
+                      <td className="num tnum">{slot.points.toFixed(1)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </details>
+      ))}
+    </div>
+  );
+}
 
 export default function HistorySection({
   seasons,
   records,
+  scoreRecords,
 }: {
   seasons: SeasonSummary[];
   records: LeagueRecords;
+  scoreRecords: { highest: ScoreRecordEntry[]; lowest: ScoreRecordEntry[] };
 }) {
   return (
     <section id="history" className="view" data-yard="OWN 40">
@@ -87,6 +139,22 @@ export default function HistorySection({
           </>
         )}
       </div>
+
+      {(scoreRecords.highest.length > 0 || scoreRecords.lowest.length > 0) && (
+        <div className="card">
+          <div className="eyebrow">Scoreboard Extremes</div>
+          <h2 className="sec">Highest &amp; Lowest Scores Ever</h2>
+          <p className="lead">
+            Every regular-season score, plus playoff-week scores from teams that actually made that season&apos;s
+            playoff bracket -- eliminated teams&apos; playoff-week scores are left out since most leagues stop
+            setting lineups once they&apos;re out. Tap a row for the full lineup.
+          </p>
+          <div className="grid2">
+            <ScoreRecordList entries={scoreRecords.highest} highest />
+            <ScoreRecordList entries={scoreRecords.lowest} highest={false} />
+          </div>
+        </div>
+      )}
     </section>
   );
 }
