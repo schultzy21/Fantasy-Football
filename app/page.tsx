@@ -3,7 +3,6 @@ import HeadToHeadSection from "@/components/HeadToHeadSection";
 import HistorySection from "@/components/HistorySection";
 import InjuriesSection from "@/components/InjuriesSection";
 import LiveOddsSection from "@/components/LiveOddsSection";
-import LuckAndOddsSection from "@/components/LuckAndOddsSection";
 import PositionsSection from "@/components/PositionsSection";
 import PowerRankingsSection from "@/components/PowerRankingsSection";
 import PredictionsSection from "@/components/PredictionsSection";
@@ -56,7 +55,6 @@ export default async function Home() {
         <a href="#power">Power Rankings</a>
         <a href="#positions">Positions</a>
         <a href="#predictions">Predictions</a>
-        <a href="#luck">Luck &amp; Odds</a>
         <a href="#head-to-head">Matchup History</a>
         <a href="#trade-analyzer">Trade Analyzer</a>
         <a href="#transactions">Transactions</a>
@@ -75,7 +73,21 @@ export default async function Home() {
               predictions sections below will fill in automatically.
             </p>
           )}
-          <StandingsTable standings={data.standings} />
+          {data.hasSeasonStarted && (
+            <p className="lead">
+              <b>All-Play:</b> each team&apos;s score measured against every other team&apos;s score in every week
+              played, not just their actual opponent. <b>Luck:</b> the gap between a team&apos;s real record and
+              that all-play record, in wins -- positive means the schedule has been kind.{" "}
+              <b>Playoff Odds:</b> a 3,000-trial simulation of the rest of the regular season, drawing each
+              team&apos;s remaining scores from its own scoring distribution so far.
+            </p>
+          )}
+          <StandingsTable
+            standings={data.standings}
+            luckTable={data.luckTable}
+            playoffOdds={data.playoffOdds}
+            showOutlook={data.hasSeasonStarted}
+          />
         </div>
       </section>
 
@@ -102,13 +114,6 @@ export default async function Home() {
         predictions={data.predictions}
         narrative={generated?.predictions_outlook ?? null}
         isProjected={data.rankingsAreProjected}
-      />
-
-      <LuckAndOddsSection
-        standings={data.standings}
-        luckTable={data.luckTable}
-        playoffOdds={data.playoffOdds}
-        hasSeasonStarted={data.hasSeasonStarted}
       />
 
       <HeadToHeadSection
