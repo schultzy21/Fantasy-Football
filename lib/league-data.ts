@@ -1,6 +1,7 @@
 import { buildBrief } from "./brief";
 import { computeDraftInsights, type DraftPickInsight } from "./draft-insights";
 import { getLeagueHistory, pairMatchupsIntoGames, type HeadToHeadGame, type LeagueRecords, type SeasonSummary } from "./history";
+import { computeIceTracker, type TeamIceRecord } from "./ice-tracker";
 import { computeBackfillInjuryEvents } from "./injury-backfill";
 import { buildInjuryLeaderboard, fetchLoggedInjuryEvents, type RosterInjuryEntry } from "./injuries";
 import { computeLiveOdds, type LiveOddsMatchup } from "./live-odds";
@@ -53,6 +54,7 @@ export type LeagueData = {
   scoreRecords: { highest: ScoreRecordEntry[]; lowest: ScoreRecordEntry[] };
   luckTable: LuckEntry[];
   playoffOdds: PlayoffOddsEntry[];
+  iceTracker: TeamIceRecord[];
   brief: string;
 };
 
@@ -195,6 +197,16 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   );
   const scoreRecords = topAndBottom([...currentSeasonEntries, ...history.scoreRecordEntries], 5);
 
+  // Ice tracker: a Smirnoff Ice for every starter who scores exactly 0 that
+  // week, two for a negative week -- this season only (current league_id),
+  // same combined regular-season + playoff-week matchup data as above.
+  const iceTracker = computeIceTracker(
+    [...weeklyMatchups, ...playoffWeekMatchups],
+    teamsByRoster,
+    league.roster_positions,
+    players,
+  );
+
   // Luck (all-play record vs. actual) and simulated playoff odds -- both
   // need real results to mean anything, so they're empty before Week 1.
   const luckTable = hasSeasonStarted ? computeLuckTable(teams, weeklyMatchups) : [];
@@ -300,6 +312,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     scoreRecords,
     luckTable,
     playoffOdds,
+    iceTracker,
     brief,
   };
 }

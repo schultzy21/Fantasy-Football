@@ -384,6 +384,18 @@ tr:last-child td {
   border-color: var(--flag);
 }
 
+.pill.ice {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+
+/* Ice tracker -- glowing cyan to read as "frozen" against the turf-green
+   backdrop, same glow treatment as the gold rank-badge elsewhere. */
+.ice-count {
+  color: var(--cyan);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--cyan) 60%, transparent);
+}
+
 /* Medal-style badge for the top 3 standings rows -- gives the highest-
    traffic table some of the same arcade "score" feel as the rest of the
    page instead of reading as a plain spreadsheet. */

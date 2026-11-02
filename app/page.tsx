@@ -1,6 +1,7 @@
 import DraftSection from "@/components/DraftSection";
 import HeadToHeadSection from "@/components/HeadToHeadSection";
 import HistorySection from "@/components/HistorySection";
+import IceTrackerSection from "@/components/IceTrackerSection";
 import InjuriesSection from "@/components/InjuriesSection";
 import LiveOddsSection from "@/components/LiveOddsSection";
 import PositionsSection from "@/components/PositionsSection";
@@ -58,6 +59,7 @@ export default async function Home() {
         <a href="#head-to-head">Matchup History</a>
         <a href="#trade-analyzer">Trade Analyzer</a>
         <a href="#transactions">Transactions</a>
+        <a href="#ice-tracker">Ice Tracker</a>
         <a href="#injuries">Injuries</a>
         <a href="#draft">Draft</a>
       </nav>
@@ -131,6 +133,8 @@ export default async function Home() {
       />
 
       <TransactionsSection summaries={data.transactionSummaries} />
+
+      <IceTrackerSection iceTracker={data.iceTracker} hasSeasonStarted={data.hasSeasonStarted} />
 
       <InjuriesSection entries={data.injuryLeaderboard} />
 
