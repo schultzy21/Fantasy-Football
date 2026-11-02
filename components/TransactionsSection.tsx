@@ -31,50 +31,54 @@ export default function TransactionsSection({ summaries }: { summaries: TeamTran
 
         {hasAny && (
           <>
-            <table>
-              <thead>
-                <tr>
-                  <th>Team</th>
-                  <th className="num">Moves</th>
-                </tr>
-              </thead>
-              <tbody>
-                {byCount.map((s) => (
-                  <tr key={s.team.rosterId}>
-                    <td>{s.team.teamName}</td>
-                    <td className="num tnum">{s.count}</td>
+            <div style={{ overflowX: "auto" }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Team</th>
+                    <th className="num">Moves</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {byCount.map((s) => (
+                    <tr key={s.team.rosterId}>
+                      <td>{s.team.teamName}</td>
+                      <td className="num tnum">{s.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             <h3 style={{ margin: "20px 0 10px", fontSize: 14, color: "var(--muted)", textTransform: "uppercase" }}>
               Most Recent Move
             </h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Team</th>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Added</th>
-                  <th>Dropped</th>
-                </tr>
-              </thead>
-              <tbody>
-                {byCount
-                  .filter((s) => s.mostRecent)
-                  .map((s) => (
-                    <tr key={s.team.rosterId}>
-                      <td>{s.team.teamName}</td>
-                      <td className="muted">{formatDate(s.mostRecent!.date)}</td>
-                      <td className="muted">{TYPE_LABEL[s.mostRecent!.type] ?? s.mostRecent!.type}</td>
-                      <td>{moveList(s.mostRecent!.added)}</td>
-                      <td>{moveList(s.mostRecent!.dropped)}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+            <div style={{ overflowX: "auto" }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Team</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Added</th>
+                    <th>Dropped</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byCount
+                    .filter((s) => s.mostRecent)
+                    .map((s) => (
+                      <tr key={s.team.rosterId}>
+                        <td>{s.team.teamName}</td>
+                        <td className="muted">{formatDate(s.mostRecent!.date)}</td>
+                        <td className="muted">{TYPE_LABEL[s.mostRecent!.type] ?? s.mostRecent!.type}</td>
+                        <td>{moveList(s.mostRecent!.added)}</td>
+                        <td>{moveList(s.mostRecent!.dropped)}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </div>

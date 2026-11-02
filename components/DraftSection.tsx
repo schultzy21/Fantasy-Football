@@ -59,6 +59,7 @@ export default function DraftSection({
               </button>
             </div>
 
+            <div style={{ overflowX: "auto" }}>
             <table>
               <thead>
                 <tr>
@@ -112,6 +113,7 @@ export default function DraftSection({
                 })}
               </tbody>
             </table>
+            </div>
           </>
         )}
       </div>

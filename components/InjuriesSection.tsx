@@ -17,61 +17,65 @@ export default function InjuriesSection({ entries }: { entries: RosterInjuryEntr
         {!hasAny && <p className="muted">No tracked injuries yet.</p>}
 
         {hasAny && (
-          <table>
-            <thead>
-              <tr>
-                <th>Team</th>
-                <th className="num">Games Missed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((entry) => (
-                <tr key={entry.team.rosterId}>
-                  <td colSpan={2} style={{ padding: 0 }}>
-                    <details>
-                      <summary
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          cursor: "pointer",
-                          padding: "10px 0",
-                          listStyle: "none",
-                        }}
-                      >
-                        <span>{entry.team.teamName}</span>
-                        <span className="num tnum">{entry.count}</span>
-                      </summary>
-
-                      {entry.events.length > 0 && (
-                        <table style={{ margin: "0 0 10px" }}>
-                          <thead>
-                            <tr>
-                              <th>Week</th>
-                              <th>Player</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {entry.events.map((e, i) => (
-                              <tr key={i}>
-                                <td className="muted">{e.week}</td>
-                                <td>{e.playerName}</td>
-                                <td className="muted">
-                                  {e.status}
-                                  {!e.confirmed && <i> (approx.)</i>}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </details>
-                  </td>
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Team</th>
+                  <th className="num">Games Missed</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {entries.map((entry) => (
+                  <tr key={entry.team.rosterId}>
+                    <td colSpan={2} style={{ padding: 0 }}>
+                      <details>
+                        <summary
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            cursor: "pointer",
+                            padding: "10px 0",
+                            listStyle: "none",
+                          }}
+                        >
+                          <span>{entry.team.teamName}</span>
+                          <span className="num tnum">{entry.count}</span>
+                        </summary>
+
+                        {entry.events.length > 0 && (
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ margin: "0 0 10px" }}>
+                              <thead>
+                                <tr>
+                                  <th>Week</th>
+                                  <th>Player</th>
+                                  <th>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {entry.events.map((e, i) => (
+                                  <tr key={i}>
+                                    <td className="muted">{e.week}</td>
+                                    <td>{e.playerName}</td>
+                                    <td className="muted">
+                                      {e.status}
+                                      {!e.confirmed && <i> (approx.)</i>}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </details>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </section>

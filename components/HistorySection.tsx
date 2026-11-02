@@ -75,24 +75,26 @@ export default function HistorySection({
         )}
 
         {seasons.length === 0 && manualHistory.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Season</th>
-                <th>Champion</th>
-                <th>Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {manualHistory.map((h) => (
-                <tr key={h.season}>
-                  <td>{h.season}</td>
-                  <td>{h.champion}</td>
-                  <td className="muted">{h.note ?? ""}</td>
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Season</th>
+                  <th>Champion</th>
+                  <th>Note</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {manualHistory.map((h) => (
+                  <tr key={h.season}>
+                    <td>{h.season}</td>
+                    <td>{h.champion}</td>
+                    <td className="muted">{h.note ?? ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {seasons.length > 0 && (
@@ -111,29 +113,31 @@ export default function HistorySection({
                   <b>Champion:</b> {s.champion ?? "Unknown"}
                   {s.runnerUp ? ` -- runner-up: ${s.runnerUp}` : ""}
                 </p>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Team</th>
-                      <th className="num">Record</th>
-                      <th className="num">PF</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {s.standings.map((t, i) => (
-                      <tr key={t.teamName + i}>
-                        <td>{i + 1}</td>
-                        <td>{t.teamName}</td>
-                        <td className="num tnum">
-                          {t.wins}-{t.losses}
-                          {t.ties ? `-${t.ties}` : ""}
-                        </td>
-                        <td className="num tnum">{t.fpts.toFixed(1)}</td>
+                <div style={{ overflowX: "auto" }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Team</th>
+                        <th className="num">Record</th>
+                        <th className="num">PF</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {s.standings.map((t, i) => (
+                        <tr key={t.teamName + i}>
+                          <td>{i + 1}</td>
+                          <td>{t.teamName}</td>
+                          <td className="num tnum">
+                            {t.wins}-{t.losses}
+                            {t.ties ? `-${t.ties}` : ""}
+                          </td>
+                          <td className="num tnum">{t.fpts.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ))}
           </>

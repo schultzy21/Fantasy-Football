@@ -268,7 +268,7 @@ export default function TradeAnalyzerSection({
           </div>
         </div>
 
-        <div style={{ maxHeight: 420, overflowY: "auto", border: "2px solid var(--line)" }}>
+        <div style={{ maxHeight: 420, overflowY: "auto", overflowX: "auto", border: "2px solid var(--line)" }}>
           <table>
             <thead>
               <tr>

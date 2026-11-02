@@ -24,35 +24,37 @@ export default function IceTrackerSection({
 
         {hasSeasonStarted && (
           <>
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Team</th>
-                  <th className="num">Ices</th>
-                </tr>
-              </thead>
-              <tbody>
-                {iceTracker.map((r, i) => (
-                  <tr key={r.team.rosterId}>
-                    <td className="tnum">
-                      {i === 0 && r.totalIces > 0 ? <span className="pill ice">Frostiest</span> : i + 1}
-                    </td>
-                    <td>{r.team.teamName}</td>
-                    <td className="num tnum ice-count">
-                      <b>{r.totalIces}</b> {r.totalIces > 0 ? "\u{1F9CA}" : ""}
-                    </td>
-                  </tr>
-                ))}
-                {iceTracker.length === 0 && (
+            <div style={{ overflowX: "auto" }}>
+              <table>
+                <thead>
                   <tr>
-                    <td colSpan={3} className="muted">
-                      No teams yet.
-                    </td>
+                    <th>#</th>
+                    <th>Team</th>
+                    <th className="num">Ices</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {iceTracker.map((r, i) => (
+                    <tr key={r.team.rosterId}>
+                      <td className="tnum">
+                        {i === 0 && r.totalIces > 0 ? <span className="pill ice">Frostiest</span> : i + 1}
+                      </td>
+                      <td>{r.team.teamName}</td>
+                      <td className="num tnum ice-count">
+                        <b>{r.totalIces}</b> {r.totalIces > 0 ? "\u{1F9CA}" : ""}
+                      </td>
+                    </tr>
+                  ))}
+                  {iceTracker.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="muted">
+                        No teams yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {weeklyLog.size > 0 && (
               <>

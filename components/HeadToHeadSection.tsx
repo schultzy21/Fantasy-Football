@@ -85,26 +85,28 @@ export default function HeadToHeadSection({ people, games }: { people: Person[];
               {record.ties ? `-${record.ties}` : ""} vs <b>{nameFor(ownerB)}</b>
               {record.winsA === record.winsB ? " (series tied)" : ""}
             </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Season</th>
-                  <th>Week</th>
-                  <th className="num">{nameFor(ownerA)}</th>
-                  <th className="num">{nameFor(ownerB)}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {record.meetings.map((m, i) => (
-                  <tr key={i}>
-                    <td>{m.season}</td>
-                    <td>{m.week}</td>
-                    <td className="num tnum">{m.aPoints > m.bPoints ? <b>{m.aPoints.toFixed(1)}</b> : m.aPoints.toFixed(1)}</td>
-                    <td className="num tnum">{m.bPoints > m.aPoints ? <b>{m.bPoints.toFixed(1)}</b> : m.bPoints.toFixed(1)}</td>
+            <div style={{ overflowX: "auto" }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Season</th>
+                    <th>Week</th>
+                    <th className="num">{nameFor(ownerA)}</th>
+                    <th className="num">{nameFor(ownerB)}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {record.meetings.map((m, i) => (
+                    <tr key={i}>
+                      <td>{m.season}</td>
+                      <td>{m.week}</td>
+                      <td className="num tnum">{m.aPoints > m.bPoints ? <b>{m.aPoints.toFixed(1)}</b> : m.aPoints.toFixed(1)}</td>
+                      <td className="num tnum">{m.bPoints > m.aPoints ? <b>{m.bPoints.toFixed(1)}</b> : m.bPoints.toFixed(1)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </div>
