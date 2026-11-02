@@ -1,4 +1,4 @@
-import type { TeamIceRecord } from "@/lib/ice-tracker";
+import { buildWeeklyIceLog, type TeamIceRecord } from "@/lib/ice-tracker";
 
 export default function IceTrackerSection({
   iceTracker,
@@ -7,7 +7,7 @@ export default function IceTrackerSection({
   iceTracker: TeamIceRecord[];
   hasSeasonStarted: boolean;
 }) {
-  const teamsWithIces = iceTracker.filter((r) => r.events.length > 0);
+  const weeklyLog = buildWeeklyIceLog(iceTracker);
 
   return (
     <section id="ice-tracker" className="view" data-yard="OWN 15">
@@ -54,24 +54,24 @@ export default function IceTrackerSection({
               </tbody>
             </table>
 
-            {teamsWithIces.length > 0 && (
+            {weeklyLog.size > 0 && (
               <>
                 <h3 style={{ margin: "22px 0 10px", fontSize: 14, color: "var(--muted)", textTransform: "uppercase" }}>
-                  Full Ice Log
+                  Weekly Ice Log
                 </h3>
-                {teamsWithIces.map((r) => (
-                  <details key={r.team.rosterId} className="record-row">
+                {[...weeklyLog.entries()].map(([week, entries]) => (
+                  <details key={week} className="record-row">
                     <summary>
-                      <span style={{ flex: 1 }}>{r.team.teamName}</span>
+                      <span style={{ flex: 1 }}>Week {week}</span>
                       <span className="tnum ice-count" style={{ fontWeight: 700 }}>
-                        {r.totalIces} {"\u{1F9CA}"}
+                        {entries.length} {entries.length === 1 ? "player" : "players"} iced
                       </span>
                     </summary>
                     <div className="lineup-wrap">
                       <table>
                         <thead>
                           <tr>
-                            <th>Wk</th>
+                            <th>Team</th>
                             <th>Player</th>
                             <th>Pos</th>
                             <th className="num">Pts</th>
@@ -79,9 +79,9 @@ export default function IceTrackerSection({
                           </tr>
                         </thead>
                         <tbody>
-                          {r.events.map((e, j) => (
-                            <tr key={`${e.playerId}-${e.week}-${j}`}>
-                              <td className="muted">{e.week}</td>
+                          {entries.map((e, j) => (
+                            <tr key={`${e.teamName}-${e.playerName}-${j}`}>
+                              <td className="muted">{e.teamName}</td>
                               <td>{e.playerName}</td>
                               <td className="muted">{e.position}</td>
                               <td className="num tnum">{e.points.toFixed(1)}</td>

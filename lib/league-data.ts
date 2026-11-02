@@ -182,9 +182,11 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     { length: Math.max(MAX_WEEKS - lastRegularWeek, 0) },
     (_, i) => lastRegularWeek + 1 + i,
   );
-  const [playoffWeekMatchups, currentWinnersBracket] = await Promise.all([
+  const [playoffWeekMatchups, currentWinnersBracket, weeklyStats, playoffWeekStats] = await Promise.all([
     Promise.all(playoffWeekNumbers.map((w) => sleeper.getMatchups(leagueId, w).catch(() => [] as SleeperMatchup[]))),
     sleeper.getWinnersBracket(leagueId).catch(() => []),
+    Promise.all(weekNumbers.map((w) => sleeper.getStats(league.season, w).catch(() => ({})))),
+    Promise.all(playoffWeekNumbers.map((w) => sleeper.getStats(league.season, w).catch(() => ({})))),
   ]);
   const currentSeasonEntries = buildScoreRecordEntries(
     league.season,
@@ -202,6 +204,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
   // same combined regular-season + playoff-week matchup data as above.
   const iceTracker = computeIceTracker(
     [...weeklyMatchups, ...playoffWeekMatchups],
+    [...weeklyStats, ...playoffWeekStats],
     teamsByRoster,
     league.roster_positions,
     players,
