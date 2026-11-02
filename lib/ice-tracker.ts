@@ -40,14 +40,21 @@ export function computeIceTracker(
 
       starters.forEach((pid, idx) => {
         if (!pid || pid === "0") return; // empty slot
-        // A player mid-game or not yet kicked off can sit at 0 in the live
-        // matchup feed -- only a confirmed "played" stat line (gp > 0) earns
-        // an ice, so stars who just haven't played yet this week don't get
-        // wrongly iced. DEF has no gp stat but is scored directly off the
-        // game, so it's exempt from this check.
         const meta = players[pid];
         const isDef = /^[A-Z]{2,4}$/.test(pid) && !meta;
-        if (!isDef && (statsThisWeek[pid]?.gp ?? 0) <= 0) return;
+
+        // A player mid-game or not yet kicked off can sit at 0 in the live
+        // matchup feed, same as a real zero -- so instead of checking this
+        // player's own gp (a healthy scratch who's been ruled Out never gets
+        // a stat line at all, same as someone who just hasn't played yet),
+        // check whether their NFL TEAM's game is already final, via that
+        // team's own DEF entry (always present with gp=1 once a game ends).
+        // Once the team's game is over, any starter with no stat line is a
+        // genuine ice -- benched for a real reason or inactive, still a 0.
+        const nflTeam = isDef ? pid : meta?.team;
+        const teamGameOver = !!nflTeam && (statsThisWeek[nflTeam]?.gp ?? 0) > 0;
+        if (!teamGameOver) return;
+
         const pts = pointsByPlayer[pid] ?? 0;
         if (pts > 0) return; // no ice earned
 
