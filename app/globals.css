@@ -18,7 +18,6 @@
   --flag: #ff3d5e;
   --radius: 3px;
   --pixel: 3px; /* base "pixel" unit used for hard borders/shadows */
-  --stripe: 150px;
 }
 
 * {
@@ -32,12 +31,9 @@ body {
 }
 
 body {
+  /* the field itself is drawn by .field-scene; this is only what shows
+     if the page is pulled past its edges */
   background-color: var(--turf-a);
-  background-image: repeating-linear-gradient(
-    180deg,
-    var(--turf-a) 0 var(--stripe),
-    var(--turf-b) var(--stripe) calc(var(--stripe) * 2)
-  );
   color: var(--chalk);
   font-family: var(--font-body), "Courier New", monospace;
   font-size: 17px;
@@ -681,7 +677,9 @@ pre.brief {
 
 footer.foot {
   margin-top: 40px;
-  padding-top: 16px;
+  padding: 16px 12px;
+  /* sits straight on the field, over yard numbers and the end zone */
+  background: rgba(8, 24, 16, 0.82);
   border-top: var(--pixel) solid var(--line);
   color: var(--muted);
   font-size: 11px;
@@ -690,95 +688,249 @@ footer.foot {
   text-align: center;
 }
 
-/* ---- Field scene: a running play that never ends, across the whole
-   viewport. A ball carrier with two blockers and a trailing defender run
-   left-to-right on an endless loop, re-entering from the left every time
-   they exit right. This sits behind every card (negative z-index paints
+/* ---- Field scene: the fixed backdrop behind every page. A full 120-yard
+   field (end zones, yard lines, hash marks, numbers) with three plays
+   running across it. It sits behind every card (negative z-index paints
    above body's own background but below all normal-flow content), and
-   cards are intentionally translucent (see .card/.top below) so the play
-   is visible right through them, not just in the gaps. ---- */
+   cards are intentionally translucent (see .card/.top above) so the field
+   reads right through them, not just in the gaps. The field pans sideways
+   as the page scrolls -- see FieldScene.tsx. ---- */
 .field-scene {
+  /* one yard and one sprite pixel, both whole CSS pixels so chalk lines and
+     sprite edges land on the pixel grid instead of blurring */
+  --yd: 12px;
+  --sprite-px: 3px;
+  /* chalk is deliberately soft: most of the field is seen through a card,
+     behind text, so it has to read as a field without competing with it */
+  --chalk-line: rgba(246, 241, 255, 0.45);
+  --chalk-mark: rgba(246, 241, 255, 0.36);
+  --chalk-edge: rgba(246, 241, 255, 0.85);
+  --hash: repeating-linear-gradient(90deg, var(--chalk-line) 0 2px, transparent 2px var(--yd));
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  /* the tall viewport, so the field still reaches the bottom of the screen
+     once a phone's browser toolbar slides away */
+  height: 100lvh;
   z-index: -1;
   pointer-events: none;
   overflow: hidden;
+  background: #0a4226;
 }
 
+@media (min-width: 600px) {
+  .field-scene {
+    --yd: 14px;
+  }
+}
+@media (min-width: 721px) {
+  .field-scene {
+    --sprite-px: 4px;
+  }
+}
+@media (min-width: 900px) {
+  .field-scene {
+    --yd: 18px;
+  }
+}
+@media (min-width: 1200px) {
+  .field-scene {
+    --yd: 22px;
+  }
+}
+@media (min-width: 1600px) {
+  .field-scene {
+    --yd: 26px;
+  }
+}
+
+.field-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  width: calc(120 * var(--yd));
+  height: 100%;
+  /* the apron outside the sidelines */
+  padding: calc(2 * var(--yd)) 0;
+}
+
+.field-endzone,
+.field-play {
+  box-sizing: border-box;
+  border-top: 4px solid var(--chalk-edge);
+  border-bottom: 4px solid var(--chalk-edge);
+}
+
+.field-play {
+  flex: 1;
+  position: relative;
+  /* top to bottom: four rows of one-yard hash marks, a line every five
+     yards, then the alternating five-yard turf bands */
+  background-image:
+    var(--hash),
+    var(--hash),
+    var(--hash),
+    var(--hash),
+    repeating-linear-gradient(90deg, var(--chalk-line) 0 3px, transparent 3px calc(5 * var(--yd))),
+    repeating-linear-gradient(
+      90deg,
+      var(--turf-a) 0 calc(5 * var(--yd)),
+      var(--turf-b) calc(5 * var(--yd)) calc(10 * var(--yd))
+    );
+  background-size:
+    100% 8px,
+    100% 8px,
+    100% 8px,
+    100% 8px,
+    100% 100%,
+    100% 100%;
+  background-position:
+    0 0,
+    0 100%,
+    0 36%,
+    0 64%,
+    0 0,
+    0 0;
+  background-repeat: no-repeat;
+}
+
+.field-endzone {
+  flex: 0 0 calc(10 * var(--yd));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-family: var(--font-display), monospace;
+  font-size: min(calc(4 * var(--yd)), 9vh);
+  letter-spacing: 0.08em;
+  color: rgba(246, 241, 255, 0.6);
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
+  /* NES-style checker dither over the team colour */
+  background-image: repeating-conic-gradient(rgba(0, 0, 0, 0.16) 0 25%, transparent 0 50%);
+  background-size: 12px 12px;
+}
+.field-endzone-home {
+  background-color: #0f6f84;
+  border-right: 6px solid var(--chalk-edge);
+}
+.field-endzone-away {
+  background-color: #a3203d;
+  border-left: 6px solid var(--chalk-edge);
+}
+
+/* yard numbers straddle their line: tens digit, the line, then the zero */
+.field-num {
+  position: absolute;
+  display: flex;
+  gap: var(--yd);
+  transform: translateX(-50%);
+  font-family: var(--font-display), monospace;
+  font-size: calc(2 * var(--yd));
+  line-height: 1;
+  color: var(--chalk-mark);
+}
+.field-num-top {
+  top: 11%;
+}
+.field-num-bottom {
+  bottom: 11%;
+}
+/* the arrow pointing at the nearer goal line */
+.field-num.is-left::before,
+.field-num.is-right::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0.4em;
+  height: 0.5em;
+  margin-top: -0.3em;
+  background: currentColor;
+}
+.field-num.is-left::before {
+  right: calc(100% + 0.3em);
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+}
+.field-num.is-right::after {
+  left: calc(100% + 0.3em);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* A play: starts fully off one edge and runs until it is fully off the
+   other, then re-enters. width: max-content keeps a formation wider than a
+   phone screen from being squeezed. */
 .field-formation {
   position: absolute;
   left: 0;
+  width: max-content;
+  animation: field-run-right linear infinite;
+}
+.field-formation.is-reverse {
+  animation-name: field-run-left;
+}
+.field-formation-row {
   display: flex;
   align-items: flex-end;
-  gap: 46px;
-  animation-name: field-run-loop;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+  gap: calc(5 * var(--sprite-px));
+}
+/* sprites are drawn facing right; a play going left is the same row mirrored */
+.field-formation.is-reverse .field-formation-row {
+  transform: scaleX(-1);
 }
 
-/* near/mid/far give the three simultaneous drives a little depth instead
-   of three identical rows -- smaller and dimmer reads as "farther away." */
-.field-drive-mid {
-  transform: scale(0.8);
-  transform-origin: left bottom;
-  opacity: 0.85;
+@keyframes field-run-right {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100vw);
+  }
 }
-.field-drive-far {
-  transform: scale(0.62);
-  transform-origin: left bottom;
-  opacity: 0.7;
+@keyframes field-run-left {
+  from {
+    transform: translateX(100vw);
+  }
+  to {
+    transform: translateX(-100%);
+  }
 }
 
+.field-char {
+  margin-left: calc(var(--fc-gap) * var(--sprite-px));
+  transform: translateY(calc(var(--fc-dy) * var(--sprite-px)));
+}
 .field-char svg {
   display: block;
+  width: calc(20 * var(--sprite-px));
+  height: auto;
   shape-rendering: crispEdges;
-  image-rendering: pixelated;
   overflow: visible;
-  /* a bold pixel-art outline: four 1px black drop-shadows compose into a
-     solid silhouette edge, which both reads as more finished sprite work
-     and keeps the figures legible against whatever's showing through the
-     translucent cards behind them. */
-  filter: drop-shadow(1.5px 0 0 #000) drop-shadow(-1.5px 0 0 #000) drop-shadow(0 1.5px 0 #000)
-    drop-shadow(0 -1.5px 0 #000);
+}
+.fc-shadow {
+  fill: rgba(0, 0, 0, 0.32);
 }
 
-.field-runner svg {
-  width: 128px;
-  height: auto;
-}
-
-.field-blocker svg,
-.field-defender svg {
-  width: 106px;
-  height: auto;
-}
-
-@keyframes field-run-loop {
-  0% {
-    transform: translateX(-32vw);
-  }
-  100% {
-    transform: translateX(132vw);
-  }
-}
-
-/* per-character run cycle (leg swap + bob) -- shared by every figure in the
-   formation, each with its own animation-delay so they don't move in
-   lockstep. */
+/* per-character run cycle (leg swap + one-pixel bob), each player offset by
+   its own --fc-delay so the formation doesn't move in lockstep */
 .fc-run-cycle {
-  animation: fc-bob 0.45s steps(2) infinite;
+  animation: fc-bob 0.4s steps(1, end) infinite;
+  animation-delay: var(--fc-delay);
 }
 .fc-legs-a {
-  opacity: 1;
-  animation: fc-legs-a-toggle 0.45s steps(1, end) infinite;
+  animation: fc-legs-a-toggle 0.4s steps(1, end) infinite;
+  animation-delay: var(--fc-delay);
 }
 .fc-legs-b {
   opacity: 0;
-  animation: fc-legs-b-toggle 0.45s steps(1, end) infinite;
+  animation: fc-legs-b-toggle 0.4s steps(1, end) infinite;
+  animation-delay: var(--fc-delay);
 }
 @keyframes fc-legs-a-toggle {
-  0%,
-  49% {
+  0% {
     opacity: 1;
   }
   50%,
@@ -787,8 +939,7 @@ footer.foot {
   }
 }
 @keyframes fc-legs-b-toggle {
-  0%,
-  49% {
+  0% {
     opacity: 0;
   }
   50%,
@@ -800,32 +951,22 @@ footer.foot {
   0% {
     transform: translateY(0);
   }
-  50% {
-    transform: translateY(-3px);
-  }
+  50%,
   100% {
-    transform: translateY(0);
+    transform: translateY(-1px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* .is-reverse is listed so this out-ranks its animation-name above */
   .field-formation,
+  .field-formation.is-reverse {
+    animation: none;
+    transform: translateX(var(--field-rest));
+  }
   .fc-run-cycle,
   .fc-legs-a,
   .fc-legs-b {
-    animation: none !important;
-  }
-}
-
-@media (max-width: 720px) {
-  .field-runner svg {
-    width: 84px;
-  }
-  .field-blocker svg,
-  .field-defender svg {
-    width: 70px;
-  }
-  .field-formation {
-    gap: 30px;
+    animation: none;
   }
 }

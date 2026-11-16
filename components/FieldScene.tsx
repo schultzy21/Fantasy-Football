@@ -1,39 +1,52 @@
 "use client";
 
+import { useEffect, useRef, type CSSProperties } from "react";
+
 type Rect = [number, number, number, number, string];
+type Team = "home" | "away";
+type Role = "runner" | "blocker" | "defender";
+type Layer = { fill: string; d: string };
 
-const PALETTE: Record<string, string> = {
-  G: "#ffd23f", // helmet
-  Y: "#ffe993", // helmet highlight (gloss)
-  g: "#caa02e", // helmet shadow
-  K: "#141414", // facemask
-  S: "#e8b382", // skin
-  J: "#2ee4ff", // jersey
-  C: "#9ef4ff", // jersey highlight
-  j: "#1596ad", // jersey shadow
-  W: "#f6f1ff", // pants / trim
-  w: "#c9c2d9", // pants shadow
-  P: "#ffd23f", // pants stripe
-  B: "#141414", // cleats / gloves
-  F: "#8b4a2b", // football leather
+// Both teams share one sprite; only the palette changes, so either side can
+// be on offense.
+const TEAM_PALETTES: Record<Team, Record<string, string>> = {
+  home: {
+    G: "#ffd23f", // helmet
+    Y: "#ffe993", // helmet gloss
+    g: "#caa02e", // helmet shadow
+    K: "#141414", // facemask
+    S: "#e8b382", // skin
+    J: "#2ee4ff", // jersey
+    C: "#9ef4ff", // jersey highlight
+    j: "#1596ad", // jersey shadow
+    N: "#f6f1ff", // collar + jersey number
+    W: "#f6f1ff", // pants
+    w: "#c9c2d9", // pants shadow
+    P: "#ffd23f", // pants stripe
+    B: "#141414", // cleats / gloves
+    F: "#8b4a2b", // football leather
+    L: "#f6f1ff", // football laces
+  },
+  away: {
+    G: "#f6f1ff",
+    Y: "#ffffff",
+    g: "#c9c2d9",
+    K: "#141414",
+    S: "#e8b382",
+    J: "#ff3d5e",
+    C: "#ff8fa3",
+    j: "#c22344",
+    N: "#f6f1ff",
+    W: "#8f86a6",
+    w: "#6f6787",
+    P: "#ff3d5e",
+    B: "#141414",
+    F: "#8b4a2b",
+    L: "#f6f1ff",
+  },
 };
 
-const DEFENDER_PALETTE: Record<string, string> = {
-  H: "#f6f1ff", // helmet (rival white, vs. the offense's gold)
-  h: "#c9c2d9", // helmet shadow
-  K: "#141414", // facemask
-  S: "#e8b382", // skin
-  J: "#ff3d5e", // jersey (flag red)
-  i: "#ff8fa3", // jersey highlight
-  j: "#c22344", // jersey shadow
-  P: "#8f86a6", // pants
-  B: "#141414", // cleats
-};
-
-// Higher-detail pixel sprite: helmet w/ facemask + skin, shaded jersey,
-// shaded pants, cleats. Authored as 16-wide row strings (one char per
-// pixel) rather than long hand-written rect lists. Shared by the ball
-// carrier and both blockers -- same team, same build.
+// 16-wide row strings, one char per pixel, facing right.
 const BODY_ROWS = [
   "......YGGG......",
   "....YYGGGGGG....",
@@ -41,12 +54,12 @@ const BODY_ROWS = [
   "....GGGGGGgSKK..",
   "....GGGGGgSSKK..",
   ".....gggSSKKK...",
-  "......SSWWWW....",
+  "......SSNNNN....",
   "...CCJJJJJJJJJ..",
   "...jjJJJJJJJJJ..",
-  "...jjJJJJWJJJJ..",
-  "...jjJJJJWJJJJ..",
-  "...jjJJJJWJJJJ..",
+  "...jjJJJJNJJJJ..",
+  "...jjJJJJNJJJJ..",
+  "...jjJJJJNJJJJ..",
   "...jjjJJJJJJJJ..",
   "....jjJJJJJJJ...",
   "....WWWWWWWW....",
@@ -63,63 +76,37 @@ const LEGS_A_ROWS = [
   "..........WW....",
   ".........BBBB...",
 ];
-// pose B is the mirror stride -- reversing each row swaps which leg reads
-// as forward vs. trailing, so the run cycle doesn't need a second hand-authored pose.
+// The mirror stride: reversing each row swaps which leg is forward.
 const LEGS_B_ROWS = LEGS_A_ROWS.map((row) => row.split("").reverse().join(""));
+const LEGS_Y = BODY_ROWS.length;
 
-// the ball carrier's stiff-arm + football -- reaches beyond the jersey
-// silhouette (cols 0-15), so it extends into extra canvas width.
-const STIFF_ARM_AND_BALL_KEYED: Rect[] = [
-  [13, 7, 2, 2, "J"],
-  [15, 8, 3, 2, "J"],
-  [17, 9, 3, 2, "S"],
-  [1, 9, 2, 2, "J"],
-  [2, 11, 2, 2, "J"],
-  [0, 11, 3, 2, "F"],
-  [1, 12, 1, 1, "W"],
-];
+// Arms reach past the 16-wide body, so every sprite sits on a 20-wide canvas.
+// Listed back to front: later rects paint over earlier ones.
+const ARMS: Record<Role, Rect[]> = {
+  runner: [
+    [13, 7, 2, 2, "J"],
+    [15, 8, 3, 2, "J"],
+    [17, 9, 3, 2, "S"],
+    [1, 9, 2, 2, "J"],
+    [2, 11, 2, 2, "J"],
+    [0, 11, 3, 2, "F"],
+    [1, 12, 1, 1, "L"],
+  ],
+  blocker: [
+    [1, 9, 2, 4, "J"],
+    [1, 13, 2, 1, "B"],
+    [13, 9, 2, 4, "J"],
+    [13, 13, 2, 1, "B"],
+  ],
+  defender: [
+    [13, 8, 3, 2, "J"],
+    [16, 8, 2, 2, "S"],
+    [13, 11, 3, 2, "J"],
+    [16, 11, 2, 2, "S"],
+  ],
+};
 
-// blockers run with both arms pumping instead of one arm on a ball.
-const BLOCKER_ARMS_KEYED: Rect[] = [
-  [1, 9, 2, 4, "J"],
-  [1, 13, 2, 1, "B"],
-  [13, 9, 2, 4, "J"],
-  [13, 13, 2, 1, "B"],
-];
-
-const DEFENDER_ROWS = [
-  "......HHHH......",
-  "....HHHHHHHH....",
-  "....hHHHHHHh....",
-  "..KKShHHHHHH....",
-  "..KKSShHHHHH....",
-  "...KKKSShhh.....",
-  "....JJJJSS......",
-  "..iiJJJJJJJJJ...",
-  "..JJJJJJJJJjj...",
-  "..JJJJJJJJJjj...",
-  "..JJJJJJJJJjj...",
-  "..JJJJJJJJjjj...",
-  "...JJJJJJJjj....",
-  "....PPPPPPPP....",
-  "..PPPPPPPPPPPP..",
-  "...PPPPPPPPPP...",
-  "...PPPPPPPPPP...",
-  "...PPPP..PPPP...",
-  "...PPPP..PPPP...",
-];
-// same stride shape as the offense, recolored -- the defender is chasing,
-// not braced, so it needs running legs rather than a static wide stance.
-const DEFENDER_LEGS_A_ROWS = LEGS_A_ROWS.map((row) => row.replace(/W/g, "P"));
-const DEFENDER_LEGS_B_ROWS = LEGS_B_ROWS.map((row) => row.replace(/W/g, "P"));
-
-// arms reach forward (toward low-x, into the play) in a tackle reach.
-const DEFENDER_ARMS_KEYED: Rect[] = [
-  [0, 7, 2, 2, "S"],
-  [0, 8, 3, 2, "J"],
-  [0, 12, 2, 2, "S"],
-  [0, 11, 3, 2, "J"],
-];
+const OUTLINE = 0.5;
 
 function rectsFromRows(rows: string[], palette: Record<string, string>, yOffset: number): Rect[] {
   const out: Rect[] = [];
@@ -139,42 +126,96 @@ function rectsFromRows(rows: string[], palette: Record<string, string>, yOffset:
   return out;
 }
 
-function resolveRects(rects: Rect[], palette: Record<string, string>): Rect[] {
-  return rects.map(([x, y, w, h, key]) => [x, y, w, h, palette[key]]);
+function pathData(rects: Rect[], grow = 0): string {
+  return rects
+    .map(([x, y, w, h]) => `M${x - grow} ${y - grow}h${w + grow * 2}v${h + grow * 2}h${-(w + grow * 2)}z`)
+    .join("");
 }
 
-const BODY_RECTS = rectsFromRows(BODY_ROWS, PALETTE, 0);
-const LEGS_A_RECTS = rectsFromRows(LEGS_A_ROWS, PALETTE, 19);
-const LEGS_B_RECTS = rectsFromRows(LEGS_B_ROWS, PALETTE, 19);
-const STIFF_ARM_AND_BALL = resolveRects(STIFF_ARM_AND_BALL_KEYED, PALETTE);
-const BLOCKER_ARMS = resolveRects(BLOCKER_ARMS_KEYED, PALETTE);
-const DEFENDER_BODY_RECTS = rectsFromRows(DEFENDER_ROWS, DEFENDER_PALETTE, 0);
-const DEFENDER_LEGS_A_RECTS = rectsFromRows(DEFENDER_LEGS_A_ROWS, DEFENDER_PALETTE, 19);
-const DEFENDER_LEGS_B_RECTS = rectsFromRows(DEFENDER_LEGS_B_ROWS, DEFENDER_PALETTE, 19);
-const DEFENDER_ARMS = resolveRects(DEFENDER_ARMS_KEYED, DEFENDER_PALETTE);
+// One path per colour instead of one element per pixel run.
+function layersByFill(rects: Rect[]): Layer[] {
+  const byFill = new Map<string, Rect[]>();
+  for (const rect of rects) {
+    const group = byFill.get(rect[4]);
+    if (group) group.push(rect);
+    else byFill.set(rect[4], [rect]);
+  }
+  return [...byFill].map(([fill, group]) => ({ fill, d: pathData(group) }));
+}
 
-function Pixels({ rects }: { rects: Rect[] }) {
+type Sprite = {
+  outline: string;
+  legsAOutline: string;
+  legsBOutline: string;
+  body: Layer[];
+  arms: Rect[];
+  legsA: Layer[];
+  legsB: Layer[];
+};
+
+function buildSprite(team: Team, role: Role): Sprite {
+  const palette = TEAM_PALETTES[team];
+  const body = rectsFromRows(BODY_ROWS, palette, 0);
+  const arms = ARMS[role].map(([x, y, w, h, key]): Rect => [x, y, w, h, palette[key]]);
+  const legsA = rectsFromRows(LEGS_A_ROWS, palette, LEGS_Y);
+  const legsB = rectsFromRows(LEGS_B_ROWS, palette, LEGS_Y);
+  return {
+    // The black edge is drawn as geometry rather than a CSS filter, so the
+    // browser isn't re-filtering every sprite on every animation frame.
+    outline: pathData([...body, ...arms], OUTLINE),
+    legsAOutline: pathData(legsA, OUTLINE),
+    legsBOutline: pathData(legsB, OUTLINE),
+    body: layersByFill(body),
+    arms,
+    legsA: layersByFill(legsA),
+    legsB: layersByFill(legsB),
+  };
+}
+
+const ROLES: Role[] = ["runner", "blocker", "defender"];
+const SPRITES = Object.fromEntries(
+  (["home", "away"] as Team[]).map((team) => [
+    team,
+    Object.fromEntries(ROLES.map((role) => [role, buildSprite(team, role)])),
+  ]),
+) as Record<Team, Record<Role, Sprite>>;
+
+function Layers({ layers }: { layers: Layer[] }) {
   return (
     <>
-      {rects.map(([x, y, w, h, fill], i) => (
-        <rect key={i} x={x} y={y} width={w} height={h} fill={fill} />
+      {layers.map((l) => (
+        <path key={l.fill} fill={l.fill} d={l.d} />
       ))}
     </>
   );
 }
 
-function Runner({ delay }: { delay: string }) {
+type Member = { team: Team; role: Role; dy?: number; gap?: number };
+
+function Player({ member, index }: { member: Member; index: number }) {
+  const sprite = SPRITES[member.team][member.role];
+  const style = {
+    "--fc-delay": `-${(index * 0.13).toFixed(2)}s`,
+    "--fc-dy": member.dy ?? 0,
+    "--fc-gap": member.gap ?? 0,
+  } as CSSProperties;
   return (
-    <div className="field-char field-runner">
-      <svg viewBox="0 0 20 24">
-        <g className="fc-run-cycle" style={{ animationDelay: delay }}>
-          <Pixels rects={BODY_RECTS} />
-          <Pixels rects={STIFF_ARM_AND_BALL} />
-          <g className="fc-legs-a" style={{ animationDelay: delay }}>
-            <Pixels rects={LEGS_A_RECTS} />
+    <div className="field-char" style={style}>
+      <svg viewBox="0 0 20 25">
+        <rect className="fc-shadow" x={2} y={23.4} width={13} height={1.4} />
+        <g className="fc-run-cycle">
+          <path d={sprite.outline} />
+          <path className="fc-legs-a" d={sprite.legsAOutline} />
+          <path className="fc-legs-b" d={sprite.legsBOutline} />
+          <Layers layers={sprite.body} />
+          {sprite.arms.map(([x, y, w, h, fill], i) => (
+            <rect key={i} x={x} y={y} width={w} height={h} fill={fill} />
+          ))}
+          <g className="fc-legs-a">
+            <Layers layers={sprite.legsA} />
           </g>
-          <g className="fc-legs-b" style={{ animationDelay: delay }}>
-            <Pixels rects={LEGS_B_RECTS} />
+          <g className="fc-legs-b">
+            <Layers layers={sprite.legsB} />
           </g>
         </g>
       </svg>
@@ -182,69 +223,146 @@ function Runner({ delay }: { delay: string }) {
   );
 }
 
-function Blocker({ delay }: { delay: string }) {
-  return (
-    <div className="field-char field-blocker">
-      <svg viewBox="0 0 20 24">
-        <g className="fc-run-cycle" style={{ animationDelay: delay }}>
-          <Pixels rects={BODY_RECTS} />
-          <Pixels rects={BLOCKER_ARMS} />
-          <g className="fc-legs-a" style={{ animationDelay: delay }}>
-            <Pixels rects={LEGS_A_RECTS} />
-          </g>
-          <g className="fc-legs-b" style={{ animationDelay: delay }}>
-            <Pixels rects={LEGS_B_RECTS} />
-          </g>
-        </g>
-      </svg>
-    </div>
-  );
-}
+type Play = {
+  top: string;
+  duration: string;
+  delay: string;
+  rest: string; // where the play stands when motion is reduced
+  reverse?: boolean;
+  members: Member[]; // trailing player first, lead player last
+};
 
-function Defender({ delay }: { delay: string }) {
-  return (
-    <div className="field-char field-defender">
-      <svg viewBox="0 0 16 24">
-        <g className="fc-run-cycle" style={{ animationDelay: delay }}>
-          <Pixels rects={DEFENDER_BODY_RECTS} />
-          <Pixels rects={DEFENDER_ARMS} />
-          <g className="fc-legs-a" style={{ animationDelay: delay }}>
-            <Pixels rects={DEFENDER_LEGS_A_RECTS} />
-          </g>
-          <g className="fc-legs-b" style={{ animationDelay: delay }}>
-            <Pixels rects={DEFENDER_LEGS_B_RECTS} />
-          </g>
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-const DRIVES = [
-  { top: "12%", duration: "12s", delayOffset: 0, band: "field-drive-near" },
-  { top: "44%", duration: "16s", delayOffset: 3, band: "field-drive-mid" },
-  { top: "76%", duration: "20s", delayOffset: 6, band: "field-drive-far" },
+// Three different plays instead of one formation repeated: a home sweep, an
+// away return coming back the other way, and a home breakaway.
+const PLAYS: Play[] = [
+  {
+    top: "15%",
+    duration: "16s",
+    delay: "-5s",
+    rest: "6vw",
+    members: [
+      { team: "away", role: "defender", dy: -4 },
+      { team: "away", role: "defender", dy: 5 },
+      { team: "home", role: "blocker", dy: -2 },
+      { team: "home", role: "runner", dy: 2 },
+      { team: "home", role: "blocker", dy: 6 },
+    ],
+  },
+  {
+    top: "45%",
+    duration: "21s",
+    delay: "-13s",
+    rest: "38vw",
+    reverse: true,
+    members: [
+      { team: "home", role: "defender", dy: 4 },
+      { team: "home", role: "defender", dy: -5 },
+      { team: "away", role: "blocker", dy: 3 },
+      { team: "away", role: "runner", dy: -1 },
+      { team: "away", role: "blocker", dy: -6 },
+    ],
+  },
+  {
+    top: "74%",
+    duration: "12s",
+    delay: "-8s",
+    rest: "20vw",
+    members: [
+      { team: "away", role: "defender", dy: -5 },
+      { team: "away", role: "defender", dy: 4 },
+      { team: "away", role: "defender", dy: -1 },
+      { team: "home", role: "runner", dy: 1, gap: 12 },
+    ],
+  },
 ];
 
-// An endless running play, always moving behind the real page: two blockers
-// escort the ball carrier, one defender trails, chasing but never catching
-// up. Three of these drives run at once, at different heights/speeds/scales
-// (near/mid/far), so the whole viewport has action in it over time instead
-// of one static band -- each loops off the right edge and re-enters from
-// the left, forever, never scoring.
-export default function FieldScene() {
+const YARD_NUMBERS = [10, 20, 30, 40, 50, 40, 30, 20, 10];
+
+function YardNumbers({ row }: { row: "top" | "bottom" }) {
   return (
-    <div className="field-scene" aria-hidden="true">
-      {DRIVES.map((d, i) => (
+    <>
+      {YARD_NUMBERS.map((n, i) => (
         <div
           key={i}
-          className={`field-formation ${d.band}`}
-          style={{ top: d.top, animationDuration: d.duration, animationDelay: `-${d.delayOffset}s` }}
+          className={`field-num field-num-${row}${i < 4 ? " is-left" : i > 4 ? " is-right" : ""}`}
+          style={{ left: `calc(${(i + 1) * 10} * var(--yd))` }}
         >
-          <Defender delay="0.05s" />
-          <Blocker delay="0.18s" />
-          <Runner delay="0s" />
-          <Blocker delay="0.27s" />
+          <span>{n / 10}</span>
+          <span>0</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
+// The fixed backdrop behind every page: a full 120-yard field with plays
+// running across it. Scrolling the page is the drive -- the camera pans from
+// the home end zone at the top of the page to the away end zone at the
+// bottom, and holds still whenever the page does.
+export default function FieldScene() {
+  const stripRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let frame = 0;
+
+    const update = () => {
+      frame = 0;
+      const hidden = strip.offsetWidth - window.innerWidth;
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      // Midfield when there is nowhere to pan to, or motion is unwanted.
+      const progress =
+        hidden <= 0 || scrollable <= 0 || reduceMotion.matches
+          ? 0.5
+          : Math.min(1, Math.max(0, window.scrollY / scrollable));
+      strip.style.transform = `translate3d(${-Math.round(hidden * progress)}px, 0, 0)`;
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    reduceMotion.addEventListener("change", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      reduceMotion.removeEventListener("change", schedule);
+    };
+  }, []);
+
+  return (
+    <div className="field-scene" aria-hidden="true">
+      <div className="field-strip" ref={stripRef}>
+        <div className="field-endzone field-endzone-home">NATIONS</div>
+        <div className="field-play">
+          <YardNumbers row="top" />
+          <YardNumbers row="bottom" />
+        </div>
+        <div className="field-endzone field-endzone-away">LEAGUE</div>
+      </div>
+      {PLAYS.map((play, i) => (
+        <div
+          key={i}
+          className={`field-formation${play.reverse ? " is-reverse" : ""}`}
+          style={
+            {
+              top: play.top,
+              animationDuration: play.duration,
+              animationDelay: play.delay,
+              "--field-rest": play.rest,
+            } as CSSProperties
+          }
+        >
+          <div className="field-formation-row">
+            {play.members.map((member, j) => (
+              <Player key={j} member={member} index={j} />
+            ))}
+          </div>
         </div>
       ))}
     </div>
