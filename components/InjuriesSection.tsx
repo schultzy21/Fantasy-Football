@@ -11,7 +11,8 @@ export default function InjuriesSection({ entries }: { entries: RosterInjuryEntr
         <p className="lead">
           Games missed to injury (Out or IR) while rostered on that team, by owner. Click a name for the full list.
           Weeks 1-4 are approximated from Sleeper&apos;s historical data (marked <i>approx.</i> below); Week 5
-          onward is tracked directly as it happens.
+          onward is tracked directly as it happens. Avg Age is the average age of every player currently on the
+          roster, defenses excluded.
         </p>
 
         {!hasAny && <p className="muted">No tracked injuries yet.</p>}
@@ -22,13 +23,14 @@ export default function InjuriesSection({ entries }: { entries: RosterInjuryEntr
               <thead>
                 <tr>
                   <th>Team</th>
-                  <th className="num">Games Missed</th>
+                  <th className="num inj-age">Avg Age</th>
+                  <th className="num inj-missed">Games Missed</th>
                 </tr>
               </thead>
               <tbody>
                 {entries.map((entry) => (
                   <tr key={entry.team.rosterId}>
-                    <td colSpan={2} style={{ padding: 0 }}>
+                    <td colSpan={3} style={{ padding: 0 }}>
                       <details>
                         <summary
                           style={{
@@ -36,12 +38,15 @@ export default function InjuriesSection({ entries }: { entries: RosterInjuryEntr
                             justifyContent: "space-between",
                             alignItems: "center",
                             cursor: "pointer",
-                            padding: "10px 0",
+                            padding: "10px",
                             listStyle: "none",
                           }}
                         >
-                          <span>{entry.team.teamName}</span>
-                          <span className="num tnum">{entry.count}</span>
+                          <span style={{ flex: 1 }}>{entry.team.teamName}</span>
+                          <span className="num tnum inj-age">
+                            {entry.averageAge != null ? entry.averageAge.toFixed(1) : "-"}
+                          </span>
+                          <span className="num tnum inj-missed">{entry.count}</span>
                         </summary>
 
                         {entry.events.length > 0 && (

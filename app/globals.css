@@ -688,6 +688,29 @@ footer.foot {
   text-align: center;
 }
 
+/* Injury table: each row is one full-width <details>, so the two right-hand
+   columns get fixed widths shared by the header cells and the row spans to
+   keep them lined up. Phones get narrower columns (the header wraps to two
+   lines) so Games Missed stays on screen. */
+.inj-age,
+.inj-missed {
+  text-align: right;
+}
+.inj-age {
+  width: 110px;
+}
+.inj-missed {
+  width: 150px;
+}
+@media (max-width: 720px) {
+  .inj-age {
+    width: 84px;
+  }
+  .inj-missed {
+    width: 96px;
+  }
+}
+
 /* ---- Field scene: the fixed backdrop behind every page. A full 120-yard
    field (end zones, yard lines, hash marks, numbers) with three plays
    running across it. It sits behind every card (negative z-index paints

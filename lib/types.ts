@@ -116,6 +116,8 @@ export type SleeperPlayer = {
   // value in the millions. Used to bound the free-agent candidate pool in
   // lib/trade-value.ts to realistically-relevant players.
   search_rank?: number | null;
+  age?: number | null; // whole years, as of Sleeper's last players refresh
+  birth_date?: string | null; // "YYYY-MM-DD"
   // Sparse, Sleeper-internal per-week overrides -- when present, a
   // historically reliable record of that week's injury designation (see
   // lib/injury-backfill.ts). Key shape: `injury_override_{season_type}_{season}_{week}`.

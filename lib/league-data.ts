@@ -255,7 +255,7 @@ export async function getLeagueData(leagueId: string): Promise<LeagueData> {
     backfillThroughWeek,
   );
   const loggedInjuryEvents = await fetchLoggedInjuryEvents(league.season);
-  const injuryLeaderboard = buildInjuryLeaderboard(backfillInjuryEvents, loggedInjuryEvents, teams);
+  const injuryLeaderboard = buildInjuryLeaderboard(backfillInjuryEvents, loggedInjuryEvents, teams, players);
 
   // Feeds the trade analyzer's injury-risk discount below: how many games
   // (this season) has each player already missed while rostered.
